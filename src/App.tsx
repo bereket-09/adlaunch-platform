@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import PublicVideoView from "./pages/PublicVideoView";
+import SubscriberPortal from "./pages/SubscriberPortal";
 import MarketerLogin from "./pages/marketer/MarketerLogin";
 import MarketerDashboard from "./pages/marketer/MarketerDashboard";
 import MarketerCampaigns from "./pages/marketer/MarketerCampaigns";
@@ -26,14 +26,16 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           
-          {/* Public Video View */}
-          <Route path="/watch" element={<PublicVideoView />} />
+          {/* Subscriber Portal (Zero-Rated) */}
+          <Route path="/watch" element={<SubscriberPortal />} />
           
           {/* Marketer Routes */}
           <Route path="/marketer/login" element={<MarketerLogin />} />
           <Route path="/marketer/dashboard" element={<MarketerDashboard />} />
           <Route path="/marketer/campaigns" element={<MarketerCampaigns />} />
           <Route path="/marketer/upload" element={<MarketerUpload />} />
+          <Route path="/marketer/analytics" element={<MarketerDashboard />} />
+          <Route path="/marketer/reports" element={<MarketerDashboard />} />
           <Route path="/marketer/settings" element={<MarketerDashboard />} />
           
           {/* Admin Routes */}
