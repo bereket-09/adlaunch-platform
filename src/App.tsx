@@ -10,10 +10,18 @@ import MarketerLogin from "./pages/marketer/MarketerLogin";
 import MarketerDashboard from "./pages/marketer/MarketerDashboard";
 import MarketerCampaigns from "./pages/marketer/MarketerCampaigns";
 import MarketerUpload from "./pages/marketer/MarketerUpload";
+import CampaignDetail from "./pages/marketer/CampaignDetail";
+import MSISDNDetail from "./pages/marketer/MSISDNDetail";
+import MarketerReports from "./pages/marketer/MarketerReports";
+import MarketerSettings from "./pages/marketer/MarketerSettings";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminMarketers from "./pages/admin/AdminMarketers";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminBudget from "./pages/admin/AdminBudget";
+import AdminFraud from "./pages/admin/AdminFraud";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -33,19 +41,22 @@ const App = () => (
           <Route path="/marketer/login" element={<MarketerLogin />} />
           <Route path="/marketer/dashboard" element={<MarketerDashboard />} />
           <Route path="/marketer/campaigns" element={<MarketerCampaigns />} />
+          <Route path="/marketer/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/marketer/msisdn/:msisdn" element={<MSISDNDetail />} />
           <Route path="/marketer/upload" element={<MarketerUpload />} />
           <Route path="/marketer/analytics" element={<MarketerDashboard />} />
-          <Route path="/marketer/reports" element={<MarketerDashboard />} />
-          <Route path="/marketer/settings" element={<MarketerDashboard />} />
+          <Route path="/marketer/reports" element={<MarketerReports />} />
+          <Route path="/marketer/settings" element={<MarketerSettings />} />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/marketers" element={<AdminMarketers />} />
           <Route path="/admin/campaigns" element={<AdminCampaigns />} />
-          <Route path="/admin/analytics" element={<AdminDashboard />} />
-          <Route path="/admin/budget" element={<AdminDashboard />} />
-          <Route path="/admin/settings" element={<AdminDashboard />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/fraud" element={<AdminFraud />} />
+          <Route path="/admin/budget" element={<AdminBudget />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
