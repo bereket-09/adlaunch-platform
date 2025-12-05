@@ -1,53 +1,59 @@
+// Updated landing page with enhanced color accents, gradients, animations, and modern visuals
+// Paste into your Index.jsx or Index.tsx
+
 import { Link } from "react-router-dom";
-import { Play, Users, BarChart3, Shield, ArrowRight, CheckCircle } from "lucide-react";
+import { Play, Users, BarChart3, Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 text-foreground">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-orange-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-4">
             <Link to="/marketer/login">
-              <Button variant="ghost">Marketer Login</Button>
+              <Button variant="ghost" className="hover:text-primary">Marketers Login</Button>
             </Link>
             <Link to="/admin/login">
-              <Button variant="outline-primary">Admin Portal</Button>
+              <Button className="bg-primary text-white hover:bg-primary/90 shadow-md px-6">Admin Portal</Button>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-primary text-sm font-medium mb-8 animate-fade-in">
+      <section className="pt-36 pb-24 px-4 relative overflow-hidden">
+        {/* Background Decorative Shapes */}
+        <div className="absolute top-10 right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-10 w-72 h-72 bg-orange-300/10 rounded-full blur-3xl" />
+
+        <div className="container mx-auto text-center max-w-4xl relative">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-200 to-orange-100 text-primary text-sm font-medium mb-8 animate-fade-in shadow-sm">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             Premium Video Advertisement Platform
           </div>
-          
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 animate-slide-up">
-            Reach Millions with
-            <span className="text-primary"> Engaging Video Ads</span>
+
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 animate-slide-up">
+            Boost Your Reach With
+            <span className="text-primary"> High-Impact Video Ads</span>
           </h1>
-          
-          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            The most effective way to connect with your audience. 
-            Guaranteed views, real engagement, and powerful analytics.
+
+          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto animate-slide-up opacity-90">
+            Deliver powerful video campaigns with guaranteed views, real engagement, and next-level analytics.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: "0.2s" }}>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
             <Link to="/marketer/login">
-              <Button variant="gradient" size="xl">
+              <Button className="bg-gradient-to-r from-primary to-orange-600 text-white shadow-xl hover:opacity-90 px-8 py-6 text-lg rounded-2xl">
                 Get Started
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
             <Link to="/watch?v=demo">
-              <Button variant="outline" size="xl">
+              <Button variant="outline" className="px-8 py-6 text-lg rounded-2xl border-orange-300 hover:bg-orange-50">
                 <Play className="h-5 w-5 mr-2" />
                 Watch Demo
               </Button>
@@ -57,17 +63,17 @@ const Index = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-secondary/50">
+      <section className="py-20 bg-white/70 backdrop-blur-lg border-y border-orange-100">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
               { value: "10M+", label: "Daily Views" },
               { value: "98%", label: "Completion Rate" },
               { value: "5K+", label: "Active Marketers" },
               { value: "50M+", label: "Users Reached" },
             ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
+              <div key={i} className="text-center p-4 rounded-xl hover:bg-orange-50 transition-all">
+                <p className="text-4xl font-extrabold text-primary drop-shadow-sm">{stat.value}</p>
                 <p className="text-muted-foreground mt-1">{stat.label}</p>
               </div>
             ))}
@@ -76,44 +82,42 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4">
+      <section className="py-24 px-4">
         <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Everything You Need to Succeed
-            </h2>
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Why Advertisers Choose Us</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Powerful tools and analytics to maximize your advertising ROI
+              Built for performance. Designed for growth. Trusted by brands.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               {
                 icon: Play,
                 title: "Guaranteed Views",
-                description: "Users must watch the complete video. No skipping, no fast-forwarding.",
+                description: "Every viewer watches the full ad — no skipping, no fast-forwarding.",
               },
               {
                 icon: BarChart3,
-                title: "Real-Time Analytics",
-                description: "Track views, engagement, and budget in real-time with detailed insights.",
+                title: "Advanced Analytics",
+                description: "Track engagement, audience behavior, and campaign ROI in real-time.",
               },
               {
                 icon: Shield,
                 title: "Fraud Protection",
-                description: "Advanced systems ensure only genuine views count toward your campaign.",
+                description: "Protect your budget with secure, verified view tracking.",
               },
-            ].map((feature, i) => (
+            ].map((f, i) => (
               <div
                 key={i}
-                className="card-elevated p-8 text-center group hover:border-primary/20 transition-all"
+                className="bg-white shadow-xl p-10 rounded-3xl border border-orange-100 hover:border-primary/40 transition-all group"
               >
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-orange-100 text-primary mb-6 group-hover:scale-110 transition-transform">
-                  <feature.icon className="h-7 w-7" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-100 text-primary mb-6 group-hover:scale-110 transition-transform">
+                  <f.icon className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-2xl font-semibold mb-3">{f.title}</h3>
+                <p className="text-muted-foreground">{f.description}</p>
               </div>
             ))}
           </div>
@@ -121,16 +125,14 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary to-orange-600">
-        <div className="container mx-auto text-center text-primary-foreground">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Grow Your Brand?
-          </h2>
-          <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
-            Join thousands of marketers who trust AdView Pro for their video advertising needs.
+      <section className="py-24 px-4 bg-gradient-to-br from-primary to-orange-600 text-white text-center">
+        <div className="container mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Scale Your Campaigns?</h2>
+          <p className="text-lg opacity-90 mb-10 max-w-xl mx-auto">
+            Start creating high-impact video ads today and reach millions instantly.
           </p>
           <Link to="/marketer/login">
-            <Button size="xl" className="bg-background text-primary hover:bg-background/90">
+            <Button size="xl" className="bg-white text-primary hover:bg-white/90 shadow-xl text-lg px-10 py-6 rounded-2xl">
               Start Your Campaign
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
@@ -139,17 +141,15 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border">
+      <footer className="py-14 px-4 bg-white border-t border-orange-200">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Logo size="sm" />
-            <p className="text-sm text-muted-foreground">
-              © 2024 AdView Pro. All rights reserved.
-            </p>
+            <p className="text-sm text-muted-foreground">© 2024 AdView Pro. All rights reserved.</p>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms</a>
-              <a href="#" className="hover:text-primary transition-colors">Contact</a>
+              <a className="hover:text-primary transition-colors">Privacy</a>
+              <a className="hover:text-primary transition-colors">Terms</a>
+              <a className="hover:text-primary transition-colors">Contact</a>
             </div>
           </div>
         </div>

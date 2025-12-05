@@ -1,176 +1,240 @@
-import { useState, useRef, useEffect } from "react";
-import { Loader2, Gift, Smartphone, Wifi, CheckCircle2 } from "lucide-react";
-import Logo from "@/components/Logo";
-import { Button } from "@/components/ui/button";
+// File: src/components/EnhancedVideoPlayer.tsx
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Loader2, CheckCircle2, Maximize2, Minimize2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 interface VideoPlayerProps {
   videoUrl: string;
   onComplete: () => void;
   adDetails?: {
     sponsor: string;
-    duration: string;
+    duration: string; // "30s"
     reward: string;
     rewardType: 'data' | 'voice' | 'sms';
   };
 }
 
-const EnhancedVideoPlayer = ({ 
-  videoUrl, 
-  onComplete,
-  adDetails = {
-    sponsor: "MTN Nigeria",
-    duration: "30 seconds",
-    reward: "50MB Data",
-    rewardType: 'data'
-  }
-}: VideoPlayerProps) => {
+const EnhancedVideoPlayer = ({ videoUrl, onComplete, adDetails }: VideoPlayerProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [watchDuration, setWatchDuration] = useState(0);
+  const [watchTime, setWatchTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const [replays, setReplays] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isNativeFs, setIsNativeFs] = useState(false);
+  const [isCssFs, setIsCssFs] = useState(false);
+  const [preventSeek, setPreventSeek] = useState(true);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const lastTimeRef = useRef(0);
+
+  // Enter/exit CSS fullscreen (fallback)
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const onFullChange = () => {
+      const native = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsNativeFs(native);
+    };
+    document.addEventListener('fullscreenchange', onFullChange);
+    return () => document.removeEventListener('fullscreenchange', onFullChange);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const handleLoadedData = () => {
+    const onLoaded = () => {
       setIsLoading(false);
-      setStartTime(new Date());
-      video.play();
+      setStartTime(Date.now());
+      // autoplay once ready
+      video.play().catch(() => {});
     };
 
-    const handleTimeUpdate = () => {
-      if (video.duration) {
-        const currentProgress = (video.currentTime / video.duration) * 100;
-        setProgress(currentProgress);
-        setWatchDuration(Math.floor(video.currentTime));
+    const onTimeUpdate = () => {
+      if (!video.duration) return;
+      const pct = (video.currentTime / video.duration) * 100;
+      setProgress(pct);
+      setWatchTime(Math.floor(video.currentTime));
+      lastTimeRef.current = video.currentTime;
+    };
+
+    const onSeeking = () => {
+      if (!preventSeek) return;
+      // If user tries to seek, jump back to lastTimeRef
+      if (Math.abs((video.currentTime || 0) - (lastTimeRef.current || 0)) > 0.5) {
+        // force revert
+        video.currentTime = Math.max(0, lastTimeRef.current - 0.1);
       }
     };
 
-    const handleEnded = () => {
-      // Track completion event
-      const completionData = {
-        startTime: startTime?.toISOString(),
+    const onEnded = () => {
+      // ensure 100% progress
+      setProgress(100);
+      // emit analytics
+      const payload = {
+        startTime: startTime ? new Date(startTime).toISOString() : undefined,
         endTime: new Date().toISOString(),
-        watchDuration,
+        watchTime: Math.floor(watchTime),
         completionRate: 100,
         replays,
-        deviceType: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-        browserType: navigator.userAgent,
+        device: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        ua: navigator.userAgent,
       };
-      console.log('Video completion event:', completionData);
+      console.log('ad:complete', payload);
       onComplete();
     };
 
-    video.addEventListener("loadeddata", handleLoadedData);
-    video.addEventListener("timeupdate", handleTimeUpdate);
-    video.addEventListener("ended", handleEnded);
+    video.addEventListener('loadeddata', onLoaded);
+    video.addEventListener('timeupdate', onTimeUpdate);
+    video.addEventListener('seeking', onSeeking);
+    video.addEventListener('ended', onEnded);
 
     return () => {
-      video.removeEventListener("loadeddata", handleLoadedData);
-      video.removeEventListener("timeupdate", handleTimeUpdate);
-      video.removeEventListener("ended", handleEnded);
+      video.removeEventListener('loadeddata', onLoaded);
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('seeking', onSeeking);
+      video.removeEventListener('ended', onEnded);
     };
-  }, [onComplete, startTime, watchDuration, replays]);
+  }, [onComplete, preventSeek, startTime, watchTime, replays]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+  // prevent context menu
+  const handleContextMenu = (e: React.MouseEvent) => e.preventDefault();
+
+  // Fullscreen helpers: try native first, fall back to CSS fullscreen
+  const enterFullscreen = useCallback(() => {
+    const root = rootRef.current;
+    const video = videoRef.current;
+    if (!root || !video) return;
+
+    // Native requestFullscreen
+    const request = (root.requestFullscreen || (root as any).webkitRequestFullscreen || (root as any).msRequestFullscreen);
+    if (request) {
+      request.call(root).then(() => setIsNativeFs(true)).catch(() => {
+        // fallback to CSS fullscreen
+        root.classList.add('app-fullscreen');
+        setIsCssFs(true);
+      });
+      return;
+    }
+
+    // Fallback
+    root.classList.add('app-fullscreen');
+    setIsCssFs(true);
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    const root = rootRef.current;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      setIsNativeFs(false);
+      return;
+    }
+    if (root) {
+      root.classList.remove('app-fullscreen');
+      setIsCssFs(false);
+    }
+  }, []);
+
+  // toggle fullscreen
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement || isCssFs) exitFullscreen();
+    else enterFullscreen();
   };
 
-  const RewardIcon = adDetails.rewardType === 'data' ? Wifi : 
-                     adDetails.rewardType === 'voice' ? Smartphone : Gift;
-
   return (
-    <div className="relative w-full max-w-3xl mx-auto">
-      {/* Reward Preview Card */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-orange-100 rounded-xl border border-primary/20">
-        <div className="flex items-center justify-between">
+    <div id="enhanced-player-root" ref={rootRef} className={`relative w-full ${isCssFs ? 'h-screen fixed inset-0 z-[9999] bg-black flex items-center justify-center' : ''}`}>
+
+      {/* Card top: reward + sponsor */}
+      <div className={`w-full max-w-3xl ${isCssFs ? 'mx-auto' : ''}`}>
+        <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary rounded-lg">
-              <RewardIcon className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <div className="p-2 rounded-lg bg-primary text-white"><CheckCircle2 className="h-4 w-4" /></div>
             <div>
-              <p className="text-sm text-muted-foreground">Complete this ad to earn</p>
-              <p className="text-lg font-bold text-primary">{adDetails.reward}</p>
+              <p className="text-xs text-muted-foreground">Reward</p>
+              <p className="text-sm font-semibold">{adDetails?.reward || '50MB Data'}</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Sponsored by</p>
-            <p className="font-semibold text-foreground">{adDetails.sponsor}</p>
+          <div className="text-right text-xs text-muted-foreground">
+            <div>Sponsored by</div>
+            <div className="font-semibold text-foreground">{adDetails?.sponsor || 'Sponsor'}</div>
           </div>
         </div>
-      </div>
 
-      {/* Ad in progress label */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-100 text-primary rounded-full text-sm font-medium">
-          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-orange" />
-          Ad in progress
-        </span>
-        <span className="text-sm text-muted-foreground">{adDetails.duration}</span>
-      </div>
+        {/* Video container */}
+        <div className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${isCssFs ? 'h-[92vh]' : 'aspect-video'}`} onContextMenu={handleContextMenu}>
 
-      {/* Video container */}
-      <div 
-        className="relative bg-foreground/5 rounded-2xl overflow-hidden aspect-video shadow-xl"
-        onContextMenu={handleContextMenu}
-      >
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-secondary z-10">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading your reward video...</p>
+          {/* Loading overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-3" />
+                <div className="text-sm text-white/80">Loading your ad…</div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <video
-          ref={videoRef}
-          className="w-full h-full object-cover"
-          playsInline
-          disablePictureInPicture
-          controlsList="nodownload noplaybackrate nofullscreen"
-          onContextMenu={handleContextMenu}
-          style={{ pointerEvents: 'none' }}
-        >
-          <source src={videoUrl} type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-
-        {/* Custom progress bar */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <Progress value={progress} className="h-1.5 rounded-none bg-foreground/20" />
-        </div>
-      </div>
-
-      {/* Progress info */}
-      <div className="mt-4 flex justify-between items-center text-sm">
-        <span className="text-muted-foreground">Watch the complete ad to claim your reward</span>
-        <span className="font-bold text-lg text-primary">{Math.round(progress)}%</span>
-      </div>
-
-      {/* Completion steps */}
-      <div className="mt-6 flex items-center justify-center gap-2">
-        {[25, 50, 75, 100].map((milestone) => (
-          <div 
-            key={milestone}
-            className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all ${
-              progress >= milestone 
-                ? 'bg-primary border-primary text-primary-foreground' 
-                : 'border-border text-muted-foreground'
-            }`}
+          {/* Video element */}
+          <video
+            ref={videoRef}
+            playsInline
+            className="w-full h-full object-cover"
+            disablePictureInPicture
+            controls={false}
+            controlsList="nodownload noplaybackrate"
+            onContextMenu={handleContextMenu}
+            // Make it difficult to interact (we also block seeking via events)
+            style={{ pointerEvents: 'auto', background: 'black' }}
           >
-            {progress >= milestone ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              <span className="text-xs font-medium">{milestone}</span>
-            )}
+            <source src={videoUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+
+          {/* UI Overlay (controls disabled except fullscreen) */}
+          <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+            <button
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
+              onClick={toggleFullscreen}
+              aria-label="Toggle fullscreen"
+            >
+              { (document.fullscreenElement || isCssFs) ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" /> }
+            </button>
           </div>
-        ))}
+
+          {/* Progress bar */}
+          <div className="absolute bottom-0 left-0 right-0 z-20">
+            <Progress value={Math.min(100, Math.round(progress))} className="h-1.5" />
+          </div>
+
+        </div>
+
+        {/* Progress & badges */}
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="inline-flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-full">Ad in progress</div>
+            <div className="text-muted-foreground">{Math.round(progress)}%</div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            { [25, 50, 75, 100].map((m) => (
+              <div key={m} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${progress >= m ? 'bg-primary text-white' : 'bg-white/10 text-muted-foreground'}`}>
+                {progress >= m ? '✓' : m}
+              </div>
+            )) }
+          </div>
+        </div>
+
       </div>
+
+      {/* CSS fullscreen styles - injected class 'app-fullscreen' handled by global CSS in your app */}
+      <style>{`
+        /* Fallback fullscreen styles when .app-fullscreen is added to #enhanced-player-root */
+        #enhanced-player-root.app-fullscreen { position: fixed !important; inset: 0 !important; z-index: 99999 !important; display:flex; align-items:center; justify-content:center; }
+        #enhanced-player-root.app-fullscreen .aspect-video { height: 92vh; width: auto; max-width: 100%; }
+      `}</style>
+
     </div>
   );
 };

@@ -16,7 +16,7 @@ const SubscriberPortal = () => {
   const demoVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
   const adDetails = {
-    sponsor: "MTN Nigeria",
+    sponsor: "ETHIO TELECOM",
     duration: "30 seconds",
     reward: "50MB Data Bundle",
     rewardType: 'data' as const,
