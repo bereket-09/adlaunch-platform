@@ -231,6 +231,25 @@ const AdminMarketers = () => {
     }
   };
 
+
+
+
+// For Transactions Dialog Search & Filter
+const [txSearchQuery, setTxSearchQuery] = useState("");
+const [txFilterType, setTxFilterType] = useState("");
+
+const filteredTransactions = transactions.filter((tx) => {
+  // Match search query (description or reason)
+  const matchesSearch =
+    tx.description?.toLowerCase().includes(txSearchQuery.toLowerCase()) ||
+    tx.reason?.toLowerCase().includes(txSearchQuery.toLowerCase());
+
+  // Match type filter
+  const matchesType = txFilterType ? tx.type === txFilterType : true;
+
+  return matchesSearch && matchesType;
+});
+
   const handleViewTransactions = async (marketer: Marketer) => {
     setSelectedMarketerName(marketer.name);
     try {
@@ -244,36 +263,77 @@ const AdminMarketers = () => {
     setIsTransactionsOpen(true);
   };
 
-  const handleToggleStatus = async (marketer: Marketer) => {
-    const newStatus = marketer.status === "active" ? "inactive" : "active";
-    try {
-      await marketerAPI.update(marketer._id, { status: newStatus });
-      toast({
-        title: newStatus === "active" ? "Marketer reactivated" : "Marketer suspended",
-        description: `${marketer.name} is now ${newStatus}.`,
-      });
-      fetchMarketers();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update status.",
-        variant: "destructive",
-      });
-    }
-  };
+const handleToggleStatus = async (marketer: Marketer) => {
+  const newStatus = marketer.status === "active" ? "deactivated" : "active";
+  try {
+    await marketerAPI.update(marketer._id, { status: newStatus }); // only status
+    toast({
+      title: newStatus === "active" ? "Marketer reactivated" : "Marketer suspended",
+      description: `${marketer.name} is now ${newStatus}.`,
+    });
+    fetchMarketers();
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to update status.",
+      variant: "destructive",
+    });
+  }
+};
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Active</Badge>;
-      case "inactive":
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Inactive</Badge>;
-      case "pendingPassChange":
-        return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pending</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "active":
+      return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Active</Badge>;
+    case "inactive":
+      return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Inactive</Badge>;
+    case "deactivated":
+      return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Inactive</Badge>;
+    case "pendingPassChange":
+      return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pending Password Change</Badge>;
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+};
+
+
+const [isDeductOpen, setIsDeductOpen] = useState(false);
+const [deductData, setDeductData] = useState({
+  marketerId: "",
+  amount: "",
+  reason: "",
+  description: "",
+});
+
+const handleDeduct = async () => {
+  try {
+    const response = await budgetAPI.deduct({
+      marketerId: deductData.marketerId,
+      amount: parseFloat(deductData.amount),
+      reason: deductData.reason,
+      description: deductData.description,
+    });
+
+    if (response.status) {
+      toast({
+        title: "Budget Deducted",
+        description: `$${deductData.amount} deducted from marketer's budget.`,
+      });
+      setIsDeductOpen(false);
+      setDeductData({ marketerId: "", amount: "", reason: "", description: "" });
+      fetchMarketers();
     }
-  };
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to deduct budget.",
+      variant: "destructive",
+    });
+  }
+};
+
+
 
   return (
     <DashboardLayout
@@ -380,6 +440,17 @@ const AdminMarketers = () => {
                                 <Wallet className="h-4 w-4 mr-2" />
                                 Top-up Budget
                               </DropdownMenuItem>
+
+                              <DropdownMenuItem
+  onClick={() => {
+    setDeductData({ ...deductData, marketerId: marketer._id });
+    setIsDeductOpen(true);
+  }}
+>
+  <DollarSign className="h-4 w-4 mr-2" />
+  Deduct Budget
+</DropdownMenuItem>
+
                               <DropdownMenuItem onClick={() => handleViewTransactions(marketer)}>
                                 <History className="h-4 w-4 mr-2" />
                                 View Transactions
@@ -398,6 +469,7 @@ const AdminMarketers = () => {
                                   </>
                                 )}
                               </DropdownMenuItem>
+
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -616,47 +688,137 @@ const AdminMarketers = () => {
         </Dialog>
 
         {/* Transactions Dialog */}
-        <Dialog open={isTransactionsOpen} onOpenChange={setIsTransactionsOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Transaction History - {selectedMarketerName}</DialogTitle>
-            </DialogHeader>
-            <div className="max-h-[400px] overflow-y-auto">
-              {transactions.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">No transactions found</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Description</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((tx) => (
-                      <TableRow key={tx._id}>
-                        <TableCell>{new Date(tx.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge className={tx.type === 'topup' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                            {tx.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${tx.type === 'topup' ? 'text-green-600' : 'text-red-600'}`}>
-                          {tx.type === 'topup' ? '+' : '-'}${tx.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {tx.description || tx.reason || '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Transactions Dialog with Search & Filter */}
+<Dialog open={isTransactionsOpen} onOpenChange={setIsTransactionsOpen}>
+  <DialogContent className="max-w-3xl">
+    <DialogHeader>
+      <DialogTitle>Transaction History - {selectedMarketerName}</DialogTitle>
+      <DialogDescription>
+        View and filter all transactions for this marketer.
+      </DialogDescription>
+    </DialogHeader>
+
+    {/* Search & Filter */}
+    <div className="flex flex-col sm:flex-row gap-4 items-center py-2">
+      <div className="relative w-full sm:w-64">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* <Input
+          placeholder="Search description or reason..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        /> */}
+      </div>
+      {/* <div>
+        <Label>Filter by Type</Label>
+        <select
+          className="input-field"
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+        >
+          <option value="">All</option>
+          <option value="topup">Top-up</option>
+          <option value="deduction">Deduction</option>
+          <option value="withdraw">Withdraw</option>
+        </select>
+      </div> */}
+    </div>
+
+    {/* Transaction Table */}
+    <div className="max-h-[400px] overflow-y-auto mt-2">
+      {filteredTransactions.length === 0 ? (
+        <p className="text-center py-8 text-muted-foreground">No transactions found</p>
+      ) : (
+        <Table className="table-auto">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Previous Budget</TableHead>
+              <TableHead>New Budget</TableHead>
+              <TableHead>Description</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTransactions.map((tx) => (
+              <TableRow key={tx._id}>
+                <TableCell>{new Date(tx.created_at).toLocaleString()}</TableCell>
+                <TableCell>
+                  <Badge
+                    className={
+                      tx.type === 'topup'
+                        ? 'bg-green-100 text-green-700'
+                        : tx.type === 'deduction'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }
+                  >
+                    {tx.type}
+                  </Badge>
+                </TableCell>
+                <TableCell className={`text-right font-medium ${tx.type === 'topup' ? 'text-green-600' : tx.type === 'deduction' ? 'text-red-600' : 'text-blue-600'}`}>
+                  {tx.type === 'topup' ? '+' : tx.type === 'deduction' ? '-' : '-'}${tx.amount.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-right">${tx.previous_budget?.toLocaleString() || '-'}</TableCell>
+                <TableCell className="text-right">${tx.new_budget?.toLocaleString() || '-'}</TableCell>
+                <TableCell className="text-muted-foreground">{tx.description || tx.reason || '-'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsTransactionsOpen(false)}>Close</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+
+        <Dialog open={isDeductOpen} onOpenChange={setIsDeductOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Deduct Budget</DialogTitle>
+      <DialogDescription>
+        Deduct funds from marketer's budget.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label>Amount ($)</Label>
+        <Input
+          type="number"
+          value={deductData.amount}
+          onChange={(e) => setDeductData({ ...deductData, amount: e.target.value })}
+          placeholder="e.g., 200"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Reason</Label>
+        <Input
+          value={deductData.reason}
+          onChange={(e) => setDeductData({ ...deductData, reason: e.target.value })}
+          placeholder="Manual adjustment"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={deductData.description}
+          onChange={(e) => setDeductData({ ...deductData, description: e.target.value })}
+          placeholder="Optional note"
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsDeductOpen(false)}>Cancel</Button>
+      <Button variant="gradient" onClick={handleDeduct}>Deduct</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
       </div>
     </DashboardLayout>
   );

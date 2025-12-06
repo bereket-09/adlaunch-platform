@@ -78,23 +78,9 @@ export const videoAPI = {
 // ============ Ad Management API ============
 
 export interface Ad {
-  _id: string;
-  marketer_id: string;
-  campaign_name: string;
-  title: string;
-  cost_per_view: number;
-  budget_allocation: number;
-  remaining_budget: number;
-  video_file_path: string;
-  video_description?: string;
-  start_date: string;
-  end_date: string;
-  status: 'pending_approval' | 'active' | 'paused' | 'completed';
-  created_at: string;
-  total_views?: number;
-  completed_views?: number;
-  completion_rate?: number;
+  [key: string]: any;
 }
+
 
 export interface AdListResponse {
   status: boolean;
@@ -268,14 +254,16 @@ export interface AdAnalytics {
 }
 
 export interface AdDetailAnalytics {
-  status: boolean;
-  ad_id: string;
-  total_views: number;
-  opened_views: number;
-  completed_views: number;
-  pending_views: number;
-  completion_rate: number;
+  [key: string]: any;
 }
+  //   status: boolean;
+//   ad_id: string;
+//   total_views: number;
+//   opened_views: number;
+//   completed_views: number;
+//   pending_views: number;
+//   completion_rate: number;
+// }
 
 export interface AdUser {
   msisdn: string;

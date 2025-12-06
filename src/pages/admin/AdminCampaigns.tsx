@@ -59,8 +59,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { adAPI, marketerAPI, Ad, Marketer } from "@/services/api";
+import { adAPI, marketerAPI, Ad, Marketer , analyticsAPI } from "@/services/api";
 import { Link } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import ReactPaginate from "react-paginate";
+
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -104,6 +108,11 @@ const AdminCampaigns = () => {
   
   const { toast } = useToast();
 
+
+  const [currentPage, setCurrentPage] = useState(0);
+const itemsPerPage = 10; // adjust as needed
+
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -118,6 +127,9 @@ const AdminCampaigns = () => {
       
       if (adsRes.status) {
         setAds(adsRes.ads);
+        console.log(adsRes.ads)
+        
+        console.log(adsRes)
       }
       if (marketersRes.status) {
         setMarketers(marketersRes.marketers);
@@ -139,6 +151,7 @@ const AdminCampaigns = () => {
           end_date: "2025-12-31T23:59:59.000Z",
           status: "active",
           created_at: "2025-12-06T16:04:23.395Z",
+
         },
       ]);
     } finally {
@@ -314,6 +327,26 @@ const AdminCampaigns = () => {
 
   const budgetWarning = newCampaign.budget_allocation && parseFloat(newCampaign.budget_allocation) > 50000;
 
+
+ const handleViewDetails = async (adId: string) => {
+  try {
+    const detail = await analyticsAPI.getAdDetail(adId);
+    // Combine detail with basic ad info if needed
+    setSelectedAd({
+      ...ads.find(a => a._id === adId),
+      ...detail, 
+      watch_sessions: detail.watch_sessions || []
+    });
+    setIsDetailOpen(true);
+  } catch (err) {
+    console.error("Failed to fetch ad detail", err);
+  }
+};
+
+
+
+
+
   return (
     <DashboardLayout
       title="Manage Campaigns"
@@ -434,15 +467,34 @@ const AdminCampaigns = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedAd(ad);
-                                  setIsDetailOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
+                      <DropdownMenuItem
+  onClick={async () => {
+    try {
+      // Fetch full ad detail including watch_sessions
+      const detail = await analyticsAPI.getAdDetail(ad._id);
+
+      // Merge basic ad info from the list with the detailed stats
+      setSelectedAd({
+        ...ad,
+        ...detail,
+        watch_sessions: detail.watch_sessions || [],
+      });
+
+      setIsDetailOpen(true);
+    } catch (err) {
+      console.error("Failed to fetch ad detail:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load ad details",
+        variant: "destructive",
+      });
+    }
+  }}
+>
+  <Eye className="h-4 w-4 mr-2" />
+  View Details
+</DropdownMenuItem>
+
                               <DropdownMenuItem
                                 onClick={() => {
                                   setEditingAd(ad);
@@ -693,109 +745,280 @@ const AdminCampaigns = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Campaign Dialog */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Edit Campaign</DialogTitle>
-            </DialogHeader>
-            {editingAd && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Ad Title</Label>
-                  <Input
-                    value={editingAd.title}
-                    onChange={(e) => setEditingAd({ ...editingAd, title: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Campaign Name</Label>
-                  <Input
-                    value={editingAd.campaign_name}
-                    onChange={(e) => setEditingAd({ ...editingAd, campaign_name: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Cost Per View ($)</Label>
-                    <Input
-                      type="number"
-                      value={editingAd.cost_per_view}
-                      onChange={(e) => setEditingAd({ ...editingAd, cost_per_view: parseFloat(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Budget ($)</Label>
-                    <Input
-                      type="number"
-                      value={editingAd.budget_allocation}
-                      onChange={(e) => setEditingAd({ ...editingAd, budget_allocation: parseFloat(e.target.value) })}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="gradient" onClick={handleUpdateAd}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+   {/* Edit Campaign Dialog */}
+<Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+  <DialogContent className="max-w-3xl">
+    <DialogHeader>
+      <DialogTitle>Edit Campaign</DialogTitle>
+    </DialogHeader>
+    {editingAd && (
+      <div className="space-y-4 py-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Ad Title</Label>
+            <Input
+              value={editingAd.title}
+              onChange={(e) => setEditingAd({ ...editingAd, title: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Campaign Name</Label>
+            <Input
+              value={editingAd.campaign_name}
+              onChange={(e) => setEditingAd({ ...editingAd, campaign_name: e.target.value })}
+            />
+          </div>
+        </div>
 
-        {/* View Details Dialog */}
-        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Campaign Details</DialogTitle>
-            </DialogHeader>
-            {selectedAd && (
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Title</p>
-                    <p className="font-medium">{selectedAd.title}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Campaign</p>
-                    <p className="font-medium">{selectedAd.campaign_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    {getStatusBadge(selectedAd.status)}
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">CPC</p>
-                    <p className="font-medium">${selectedAd.cost_per_view}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Budget</p>
-                    <p className="font-medium">${selectedAd.budget_allocation.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Remaining</p>
-                    <p className="font-medium text-primary">${selectedAd.remaining_budget.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Start Date</p>
-                    <p className="font-medium">{new Date(selectedAd.start_date).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">End Date</p>
-                    <p className="font-medium">{new Date(selectedAd.end_date).toLocaleDateString()}</p>
-                  </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Cost Per View ($)</Label>
+            <Input
+              type="number"
+              value={editingAd.cost_per_view}
+              onChange={(e) =>
+                setEditingAd({ ...editingAd, cost_per_view: parseFloat(e.target.value) })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Budget ($)</Label>
+            <Input
+              type="number"
+              value={editingAd.budget_allocation}
+              onChange={(e) =>
+                setEditingAd({ ...editingAd, budget_allocation: parseFloat(e.target.value) })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Input
+              value={editingAd.status}
+              onChange={(e) => setEditingAd({ ...editingAd, status: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Input
+            value={editingAd.description || ""}
+            onChange={(e) => setEditingAd({ ...editingAd, description: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Video File Path</Label>
+          <Input
+            value={editingAd.video_file_path}
+            onChange={(e) => setEditingAd({ ...editingAd, video_file_path: e.target.value })}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Start Date</Label>
+            <Input
+              type="date"
+              value={editingAd.start_date?.slice(0, 10)}
+              onChange={(e) =>
+                setEditingAd({ ...editingAd, start_date: new Date(e.target.value).toISOString() })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>End Date</Label>
+            <Input
+              type="date"
+              value={editingAd.end_date?.slice(0, 10)}
+              onChange={(e) =>
+                setEditingAd({ ...editingAd, end_date: new Date(e.target.value).toISOString() })
+              }
+            />
+          </div>
+        </div>
+      </div>
+    )}
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+        Cancel
+      </Button>
+      <Button variant="gradient" onClick={handleUpdateAd}>
+        Save Changes
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+
+{/* View Campaign Details Dialog */}
+<Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+  <DialogContent className="max-w-7xl w-full h-[90vh] overflow-hidden rounded-2xl p-6 bg-white shadow-xl">
+    <DialogHeader>
+      <DialogTitle className="text-2xl font-bold mb-1">Campaign Details</DialogTitle>
+      <DialogDescription className="text-sm text-muted-foreground">
+        Review the campaign information, statistics, and watch sessions.
+      </DialogDescription>
+    </DialogHeader>
+
+    {selectedAd && (
+      <Tabs defaultValue="summary" className="flex flex-col h-[75vh] mt-4">
+        {/* Top Navigation Tabs */}
+        <TabsList className="flex space-x-4 border-b border-gray-200 mb-4">
+          <TabsTrigger value="summary" className="px-4 py-2 font-semibold hover:bg-gray-100 rounded-t-lg">
+            Summary
+          </TabsTrigger>
+          <TabsTrigger value="stats" className="px-4 py-2 font-semibold hover:bg-gray-100 rounded-t-lg">
+            Stats
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="px-4 py-2 font-semibold hover:bg-gray-100 rounded-t-lg">
+            Watch Sessions
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tabs Content */}
+        <div className="flex-1 overflow-auto">
+          {/* ================= SUMMARY ================= */}
+          <TabsContent value="summary" className="p-4 space-y-6">
+            <div className="grid grid-cols-3 gap-6">
+              {[
+                { label: "Title", value: selectedAd.title },
+                { label: "Campaign", value: selectedAd.campaign_name },
+                { label: "Status", value: getStatusBadge(selectedAd.status) },
+                { label: "CPC", value: `$${selectedAd.cost_per_view}` },
+                { label: "Budget", value: `$${selectedAd.budget_allocation.toLocaleString()}` },
+                {
+                  label: "Remaining",
+                  value: (
+                    <span className="text-primary font-medium">
+                      ${selectedAd.remaining_budget?.toLocaleString() || 0}
+                    </span>
+                  ),
+                },
+                { label: "Start Date", value: new Date(selectedAd.start_date).toLocaleDateString() },
+                { label: "End Date", value: new Date(selectedAd.end_date).toLocaleDateString() },
+              ].map((item, idx) => (
+                <div key={idx}>
+                  <p className="text-sm text-muted-foreground">{item.label}</p>
+                  <p className="font-medium">{item.value}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Video Path</p>
-                  <p className="font-medium text-sm break-all">{selectedAd.video_file_path}</p>
-                </div>
+              ))}
+
+              <div className="col-span-3">
+                <p className="text-sm text-muted-foreground">Video Path</p>
+                <p className="font-medium text-sm break-all">{selectedAd.video_file_path}</p>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          </TabsContent>
+
+          {/* ================= STATS ================= */}
+          <TabsContent value="stats" className="p-4 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 gap-4">
+                {[
+                  { label: "Total Views", value: selectedAd.total_views },
+                  { label: "Opened Views", value: selectedAd.opened_views },
+                  { label: "Completed Views", value: selectedAd.completed_views },
+                  { label: "Pending Views", value: selectedAd.pending_views },
+                  { label: "Completion Rate", value: `${(selectedAd.completion_rate * 100).toFixed(2)}%` },
+                ].map((stat, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 rounded-md shadow hover:shadow-md transition">
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="font-semibold text-xl">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pie Chart */}
+              <div className="h-80 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Completed", value: selectedAd.completed_views },
+                        { name: "Opened", value: selectedAd.opened_views - selectedAd.completed_views },
+                        { name: "Pending", value: selectedAd.pending_views },
+                      ]}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                      label
+                    >
+                      <Cell fill="#4ade80" />
+                      <Cell fill="#facc15" />
+                      <Cell fill="#f87171" />
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ================= WATCH SESSIONS ================= */}
+          <TabsContent value="sessions" className="p-4">
+            <div className="overflow-auto">
+              <Table className="table-auto border-collapse w-full min-w-[800px]">
+                <TableHeader>
+                  <TableRow>
+                    {["MSISDN", "Status", "Device", "IP", "Location", "Started", "Completed"].map((head) => (
+                      <TableHead key={head}>{head}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedAd.watch_sessions
+                    ?.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
+                    .map((ws) => (
+                      <TableRow key={ws._id} className="hover:bg-gray-50 transition">
+                        <TableCell>{ws.msisdn}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              ws.status === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }
+                          >
+                            {ws.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{`${ws.device_info.brand} ${ws.device_info.model}`}</TableCell>
+                        <TableCell>{ws.ip}</TableCell>
+                        <TableCell>
+                          {ws.location?.category} ({ws.location?.lat}, {ws.location?.lon})
+                        </TableCell>
+                        <TableCell>{ws.started_at ? new Date(ws.started_at).toLocaleString() : "-"}</TableCell>
+                        <TableCell>{ws.completed_at ? new Date(ws.completed_at).toLocaleString() : "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              <div className="mt-4 flex justify-center">
+                <ReactPaginate
+                  pageCount={Math.ceil((selectedAd.watch_sessions?.length || 0) / itemsPerPage)}
+                  onPageChange={(selected) => setCurrentPage(selected.selected)}
+                  containerClassName="flex space-x-2"
+                  pageClassName="px-3 py-1 border rounded hover:bg-gray-100 cursor-pointer"
+                  activeClassName="bg-blue-500 text-white"
+                  previousLabel="<"
+                  nextLabel=">"
+                  breakLabel="..."
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
+    )}
+  </DialogContent>
+</Dialog>
+
+
       </div>
     </DashboardLayout>
   );
