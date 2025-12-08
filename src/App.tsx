@@ -22,6 +22,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminBudget from "./pages/admin/AdminBudget";
 import AdminFraud from "./pages/admin/AdminFraud";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminViewCampaigns from "./pages/admin/AdminViewCampaigns";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,8 @@ const App = () => (
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/marketers" element={<AdminMarketers />} />
           <Route path="/admin/campaigns" element={<AdminCampaigns />} />
+          <Route path="/admin/campaigns/:id" element={<AdminViewCampaigns />} />
+          <Route path="/admin/msisdn/:msisdn" element={<MSISDNDetail />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/fraud" element={<AdminFraud />} />
           <Route path="/admin/budget" element={<AdminBudget />} />
