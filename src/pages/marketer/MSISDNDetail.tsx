@@ -1,8 +1,9 @@
 import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, Video, Upload, Settings, ArrowLeft, Eye, 
   TrendingUp, Gift, Smartphone, Clock, CheckCircle2, XCircle,
-  Star, Activity, Calendar, BarChart3
+  Star, Activity, Calendar, BarChart3, AlertTriangle
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import KPICard from "@/components/analytics/KPICard";
@@ -14,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
+import { analyticsAPI, UserAnalytics, AuditLog } from "@/services/api";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/marketer/dashboard" },
@@ -22,56 +24,94 @@ const sidebarItems = [
   { icon: Settings, label: "Settings", href: "/marketer/settings" },
 ];
 
-// Mock MSISDN data
-const msisdnData = {
-  msisdn: "+234801****234",
-  firstSeen: "2024-01-10 09:15:22",
-  lastSeen: "2024-01-16 14:32:05",
-  totalAdsWatched: 12,
-  totalRewards: 8,
-  completionRate: 91.7,
-  isHighValue: true,
-  totalDataEarned: "600MB",
-  totalVoiceEarned: "30 mins",
-  deviceType: "Mobile",
-  browser: "Chrome Mobile",
-  os: "Android 13",
-};
-
-const activityHistory = [
-  { date: "2024-01-16 14:32:05", campaign: "Summer Sale 2024", completion: 100, reward: "success", earned: "50MB Data" },
-  { date: "2024-01-16 10:15:22", campaign: "Data Bundle Offer", completion: 100, reward: "success", earned: "100MB Data" },
-  { date: "2024-01-15 18:45:33", campaign: "Voice Pack Deal", completion: 78, reward: "failed", earned: "-" },
-  { date: "2024-01-15 12:20:44", campaign: "Summer Sale 2024", completion: 100, reward: "success", earned: "50MB Data" },
-  { date: "2024-01-14 09:30:55", campaign: "Holiday Special", completion: 100, reward: "success", earned: "75MB Data" },
-  { date: "2024-01-13 16:22:11", campaign: "Data Bundle Offer", completion: 100, reward: "success", earned: "100MB Data" },
-  { date: "2024-01-12 11:45:33", campaign: "Summer Sale 2024", completion: 45, reward: "failed", earned: "-" },
-  { date: "2024-01-11 14:10:22", campaign: "Voice Pack Deal", completion: 100, reward: "success", earned: "10 mins Voice" },
-];
-
-const engagementData = [
-  { date: "Jan 10", ads: 1 },
-  { date: "Jan 11", ads: 1 },
-  { date: "Jan 12", ads: 1 },
-  { date: "Jan 13", ads: 2 },
-  { date: "Jan 14", ads: 1 },
-  { date: "Jan 15", ads: 3 },
-  { date: "Jan 16", ads: 3 },
-];
-
 const MSISDNDetail = () => {
   const { msisdn } = useParams();
+  const [userData, setUserData] = useState<UserAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (msisdn) {
+      fetchUserData();
+    }
+  }, [msisdn]);
+
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const response = await analyticsAPI.getUserDetail(msisdn!);
+      if (response.status) {
+        setUserData(response);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // Demo fallback
+      setUserData({
+        status: true,
+        msisdn: msisdn || "+234801****234",
+        total_ads_watched: 12,
+        total_rewards: 8,
+        ads: [
+          { ad_id: "1", status: "completed", completed_at: "2024-01-16T14:32:05Z", reward_granted: true },
+          { ad_id: "2", status: "completed", completed_at: "2024-01-16T10:15:22Z", reward_granted: true },
+        ],
+        audit_logs: [],
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRewardBadge = (status: string) => {
     switch (status) {
-      case "success":
-        return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" />Success</Badge>;
-      case "failed":
-        return <Badge className="bg-red-100 text-red-700"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+      case "completed":
+        return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" />Completed</Badge>;
+      case "started":
+        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
+      case "opened":
+        return <Badge className="bg-blue-100 text-blue-700"><Eye className="h-3 w-3 mr-1" />Opened</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  const getEventTypeBadge = (type: string) => {
+    const typeConfig: Record<string, { color: string; label: string }> = {
+      'link_created': { color: 'bg-blue-100 text-blue-700', label: 'Link Created' },
+      'opened': { color: 'bg-cyan-100 text-cyan-700', label: 'Opened' },
+      'started_at': { color: 'bg-yellow-100 text-yellow-700', label: 'Started' },
+      'completed_at': { color: 'bg-green-100 text-green-700', label: 'Completed' },
+      'fraud_attempt_completion_without_start': { color: 'bg-red-100 text-red-700', label: 'Fraud Attempt' },
+    };
+    const config = typeConfig[type] || { color: 'bg-gray-100 text-gray-700', label: type };
+    return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  // Generate engagement data from ads history
+  const engagementData = userData?.ads.reduce((acc: any[], ad) => {
+    if (ad.completed_at) {
+      const date = new Date(ad.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const existing = acc.find(d => d.date === date);
+      if (existing) {
+        existing.ads += 1;
+      } else {
+        acc.push({ date, ads: 1 });
+      }
+    }
+    return acc;
+  }, []) || [];
+
+  const completionRate = userData ? (userData.total_rewards / userData.total_ads_watched * 100) : 0;
+  const isHighValue = userData && userData.total_ads_watched >= 10 && completionRate >= 80;
+
+  if (loading) {
+    return (
+      <DashboardLayout title="MSISDN Details" sidebarItems={sidebarItems} userType="marketer">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading user data...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout
@@ -90,8 +130,8 @@ const MSISDNDetail = () => {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold font-mono text-foreground">{msisdn || msisdnData.msisdn}</h1>
-                {msisdnData.isHighValue && (
+                <h1 className="text-2xl font-bold font-mono text-foreground">{userData?.msisdn}</h1>
+                {isHighValue && (
                   <Badge className="bg-yellow-100 text-yellow-700">
                     <Star className="h-3 w-3 mr-1 fill-yellow-500" />
                     High Value
@@ -113,20 +153,20 @@ const MSISDNDetail = () => {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">First Seen</p>
-                  <p className="font-semibold">{msisdnData.firstSeen.split(' ')[0]}</p>
+                  <p className="text-sm text-muted-foreground">MSISDN</p>
+                  <p className="font-semibold font-mono">{userData?.msisdn}</p>
                 </div>
                 <div className="p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Last Seen</p>
-                  <p className="font-semibold">{msisdnData.lastSeen.split(' ')[0]}</p>
+                  <p className="text-sm text-muted-foreground">Total Ads</p>
+                  <p className="font-semibold">{userData?.total_ads_watched}</p>
                 </div>
                 <div className="p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Device</p>
-                  <p className="font-semibold">{msisdnData.deviceType}</p>
+                  <p className="text-sm text-muted-foreground">Rewards</p>
+                  <p className="font-semibold">{userData?.total_rewards}</p>
                 </div>
                 <div className="p-4 bg-secondary/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Browser</p>
-                  <p className="font-semibold">{msisdnData.browser}</p>
+                  <p className="text-sm text-muted-foreground">Success Rate</p>
+                  <p className="font-semibold">{completionRate.toFixed(1)}%</p>
                 </div>
               </div>
             </CardContent>
@@ -135,16 +175,16 @@ const MSISDNDetail = () => {
           {/* Rewards Summary */}
           <Card className="card-elevated">
             <CardHeader>
-              <CardTitle className="text-lg">Rewards Earned</CardTitle>
+              <CardTitle className="text-lg">Rewards Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
-                <span className="text-muted-foreground">Total Data</span>
-                <span className="font-bold text-primary">{msisdnData.totalDataEarned}</span>
+                <span className="text-muted-foreground">Total Rewards</span>
+                <span className="font-bold text-primary">{userData?.total_rewards}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
-                <span className="text-muted-foreground">Total Voice</span>
-                <span className="font-bold text-primary">{msisdnData.totalVoiceEarned}</span>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <span className="text-muted-foreground">Success Rate</span>
+                <span className="font-bold text-green-600">{completionRate.toFixed(1)}%</span>
               </div>
             </CardContent>
           </Card>
@@ -154,104 +194,156 @@ const MSISDNDetail = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             title="Ads Watched"
-            value={msisdnData.totalAdsWatched}
+            value={userData?.total_ads_watched || 0}
             icon={Eye}
             trend="neutral"
           />
           <KPICard
             title="Rewards Claimed"
-            value={msisdnData.totalRewards}
+            value={userData?.total_rewards || 0}
             icon={Gift}
             trend="neutral"
           />
           <KPICard
             title="Completion Rate"
-            value={`${msisdnData.completionRate}%`}
+            value={`${completionRate.toFixed(1)}%`}
             icon={TrendingUp}
-            trend="up"
+            trend={completionRate >= 80 ? "up" : "neutral"}
           />
           <KPICard
             title="Active Days"
-            value={7}
+            value={new Set(userData?.ads.map(a => a.completed_at?.split('T')[0])).size || 0}
             icon={Calendar}
             trend="neutral"
           />
         </div>
 
         {/* Engagement Chart */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <CardTitle className="text-lg">Engagement History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Line type="monotone" dataKey="ads" stroke="hsl(var(--primary))" strokeWidth={3} name="Ads Watched" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        {engagementData.length > 0 && (
+          <Card className="card-elevated">
+            <CardHeader>
+              <CardTitle className="text-lg">Engagement History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={engagementData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Line type="monotone" dataKey="ads" stroke="hsl(var(--primary))" strokeWidth={3} name="Ads Watched" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Activity History */}
+        {/* Ads History */}
         <Card className="card-elevated">
           <CardHeader>
-            <CardTitle className="text-lg">Activity History</CardTitle>
+            <CardTitle className="text-lg">Ads Watched</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-secondary/50">
-                    <TableHead>Date & Time</TableHead>
-                    <TableHead>Campaign</TableHead>
-                    <TableHead>Completion</TableHead>
-                    <TableHead>Reward Status</TableHead>
-                    <TableHead>Earned</TableHead>
+                    <TableHead>Ad ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Completed At</TableHead>
+                    <TableHead>Reward</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activityHistory.map((activity, index) => (
-                    <TableRow key={index} className="hover:bg-secondary/30">
-                      <TableCell className="text-muted-foreground">{activity.date}</TableCell>
-                      <TableCell>
-                        <Link to={`/marketer/campaigns/1`} className="hover:text-primary font-medium">
-                          {activity.campaign}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${activity.completion === 100 ? 'bg-green-500' : 'bg-primary'}`}
-                              style={{ width: `${activity.completion}%` }}
-                            />
-                          </div>
-                          <span className="text-sm">{activity.completion}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getRewardBadge(activity.reward)}</TableCell>
-                      <TableCell className={activity.earned !== "-" ? "text-primary font-medium" : "text-muted-foreground"}>
-                        {activity.earned}
+                  {userData?.ads.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        No ad history available
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    userData?.ads.map((ad, index) => (
+                      <TableRow key={index} className="hover:bg-secondary/30">
+                        <TableCell className="font-mono text-sm">{ad.ad_id}</TableCell>
+                        <TableCell>{getRewardBadge(ad.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {ad.completed_at ? new Date(ad.completed_at).toLocaleString() : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {ad.reward_granted ? (
+                            <Badge className="bg-green-100 text-green-700">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Granted
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-100 text-red-700">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Failed
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
+
+        {/* Audit Logs */}
+        {userData?.audit_logs && userData.audit_logs.length > 0 && (
+          <Card className="card-elevated">
+            <CardHeader>
+              <CardTitle className="text-lg">Activity Audit Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/50">
+                      <TableHead>Event Type</TableHead>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Token</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>Fraud Flag</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userData.audit_logs.map((log: AuditLog, index: number) => (
+                      <TableRow key={index} className="hover:bg-secondary/30">
+                        <TableCell>{getEventTypeBadge(log.type)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{log.token.slice(0, 12)}...</TableCell>
+                        <TableCell>{log.ip || '-'}</TableCell>
+                        <TableCell>
+                          {log.fraud_detected ? (
+                            <Badge className="bg-red-100 text-red-700">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Detected
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-700">Clean</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

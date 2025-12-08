@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, Video, Upload, Settings, ArrowLeft, Eye, Users, 
   TrendingUp, DollarSign, Play, Pause, Download, Calendar, Target,
@@ -19,6 +20,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, Legend
 } from "recharts";
+import { analyticsAPI, adAPI, Ad, AdUser } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/marketer/dashboard" },
@@ -27,21 +30,7 @@ const sidebarItems = [
   { icon: Settings, label: "Settings", href: "/marketer/settings" },
 ];
 
-// Mock campaign data
-const campaignData = {
-  id: "1",
-  name: "Summer Sale 2024",
-  status: "active",
-  createdAt: "2024-01-15",
-  videoUrl: "https://example.com/video.mp4",
-  thumbnailUrl: "/placeholder.svg",
-  description: "Promotional campaign for summer product line featuring exclusive discounts and new arrivals.",
-  budget: 5000,
-  spent: 2340,
-  rate: 0.15,
-  rateType: "Premium",
-};
-
+// Static data for visualizations (will be bound to analytics endpoints later)
 const dailyData = [
   { date: "Jan 10", views: 1200, completions: 1080, spend: 162 },
   { date: "Jan 11", views: 1450, completions: 1305, spend: 195.75 },
@@ -80,14 +69,6 @@ const deviceData = [
   { name: "Desktop", value: 8, color: "hsl(var(--gray-400))" },
 ];
 
-const recentViewers = [
-  { msisdn: "+234801****234", timestamp: "2024-01-16 14:32:05", completion: 100, reward: "success", device: "Mobile" },
-  { msisdn: "+234802****567", timestamp: "2024-01-16 14:28:12", completion: 100, reward: "success", device: "Mobile" },
-  { msisdn: "+234803****890", timestamp: "2024-01-16 14:25:33", completion: 78, reward: "failed", device: "Tablet" },
-  { msisdn: "+234804****123", timestamp: "2024-01-16 14:22:44", completion: 100, reward: "pending", device: "Mobile" },
-  { msisdn: "+234805****456", timestamp: "2024-01-16 14:18:55", completion: 45, reward: "failed", device: "Desktop" },
-];
-
 const hourlyData = Array.from({ length: 24 }, (_, i) => ({
   hour: `${i.toString().padStart(2, '0')}:00`,
   views: Math.floor(Math.random() * 150) + (i >= 9 && i <= 21 ? 100 : 20),
@@ -95,19 +76,106 @@ const hourlyData = Array.from({ length: 24 }, (_, i) => ({
 
 const CampaignDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
+  
+  const [campaign, setCampaign] = useState<Ad | null>(null);
+  const [adDetail, setAdDetail] = useState<any>(null);
+  const [viewers, setViewers] = useState<AdUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchCampaignData();
+    }
+  }, [id]);
+
+  const fetchCampaignData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch ad list to get basic info
+      const adsRes = await adAPI.list();
+      if (adsRes.status) {
+        const ad = adsRes.ads.find(a => a._id === id);
+        if (ad) setCampaign(ad);
+      }
+
+      // Fetch ad analytics detail
+      const detailRes = await analyticsAPI.getAdDetail(id!);
+      if (detailRes.status) {
+        setAdDetail(detailRes);
+      }
+
+      // Fetch ad users/viewers
+      const usersRes = await analyticsAPI.getAdUsers(id!);
+      if (usersRes.status) {
+        setViewers(usersRes.users);
+      }
+    } catch (error) {
+      console.error('Error fetching campaign data:', error);
+      // Set demo data
+      setCampaign({
+        _id: id || "1",
+        marketer_id: "m1",
+        campaign_name: "Summer Sale 2024",
+        title: "Summer Promo Ad",
+        cost_per_view: 0.15,
+        budget_allocation: 5000,
+        remaining_budget: 2660,
+        video_file_path: "ads/video.mp4",
+        start_date: "2024-01-01",
+        end_date: "2024-12-31",
+        status: "active",
+        created_at: "2024-01-15",
+      });
+      setAdDetail({
+        total_views: 45280,
+        opened_views: 48000,
+        completed_views: 41102,
+        pending_views: 120,
+        completion_rate: 0.908,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!campaign) return;
+    const newStatus = campaign.status === "active" ? "paused" : "active";
+    try {
+      await adAPI.update(campaign._id, { status: newStatus });
+      toast({ title: newStatus === "active" ? "Campaign activated" : "Campaign paused" });
+      fetchCampaignData();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+    }
+  };
 
   const getRewardBadge = (status: string) => {
     switch (status) {
-      case "success":
-        return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" />Success</Badge>;
-      case "failed":
-        return <Badge className="bg-red-100 text-red-700"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case "completed":
+        return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="h-3 w-3 mr-1" />Completed</Badge>;
+      case "started":
+        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
+      case "opened":
+        return <Badge className="bg-blue-100 text-blue-700"><Eye className="h-3 w-3 mr-1" />Opened</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Campaign Details" sidebarItems={sidebarItems} userType="marketer">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading campaign data...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const spent = campaign ? campaign.budget_allocation - campaign.remaining_budget : 0;
 
   return (
     <DashboardLayout
@@ -126,16 +194,18 @@ const CampaignDetail = () => {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">{campaignData.name}</h1>
-                <Badge className="bg-green-100 text-green-700">Active</Badge>
+                <h1 className="text-2xl font-bold text-foreground">{campaign?.title}</h1>
+                <Badge className={campaign?.status === "active" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
+                  {campaign?.status}
+                </Badge>
               </div>
-              <p className="text-muted-foreground">Campaign ID: {id || campaignData.id}</p>
+              <p className="text-muted-foreground">{campaign?.campaign_name} • ID: {id}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2">
-              <Pause className="h-4 w-4" />
-              Pause Campaign
+            <Button variant="outline" className="gap-2" onClick={handleToggleStatus}>
+              {campaign?.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {campaign?.status === "active" ? "Pause Campaign" : "Activate Campaign"}
             </Button>
             <ExportButton filename={`campaign-${id}-report`} />
           </div>
@@ -150,7 +220,7 @@ const CampaignDetail = () => {
                 <div className="w-full md:w-64 flex-shrink-0">
                   <div className="aspect-video bg-secondary rounded-lg overflow-hidden relative">
                     <img 
-                      src={campaignData.thumbnailUrl} 
+                      src="/placeholder.svg" 
                       alt="Campaign thumbnail" 
                       className="w-full h-full object-cover"
                     />
@@ -164,24 +234,24 @@ const CampaignDetail = () => {
                 
                 {/* Campaign Details */}
                 <div className="flex-1 space-y-4">
-                  <p className="text-muted-foreground">{campaignData.description}</p>
+                  <p className="text-muted-foreground">Video: {campaign?.video_file_path}</p>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-muted-foreground">Rate Type</p>
-                      <p className="font-semibold">{campaignData.rateType}</p>
-                    </div>
-                    <div>
                       <p className="text-sm text-muted-foreground">Cost Per Completion</p>
-                      <p className="font-semibold">${campaignData.rate.toFixed(2)}</p>
+                      <p className="font-semibold">${campaign?.cost_per_view?.toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Created</p>
-                      <p className="font-semibold">{campaignData.createdAt}</p>
+                      <p className="font-semibold">{new Date(campaign?.created_at || '').toLocaleDateString()}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Duration</p>
-                      <p className="font-semibold">30 seconds</p>
+                      <p className="text-sm text-muted-foreground">Start Date</p>
+                      <p className="font-semibold">{new Date(campaign?.start_date || '').toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">End Date</p>
+                      <p className="font-semibold">{new Date(campaign?.end_date || '').toLocaleDateString()}</p>
                     </div>
                   </div>
                 </div>
@@ -198,28 +268,28 @@ const CampaignDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Spent</span>
-                  <span className="font-medium">${campaignData.spent.toLocaleString()}</span>
+                  <span className="font-medium">${spent.toLocaleString()}</span>
                 </div>
                 <div className="h-3 bg-secondary rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-primary rounded-full"
-                    style={{ width: `${(campaignData.spent / campaignData.budget) * 100}%` }}
+                    style={{ width: `${(spent / (campaign?.budget_allocation || 1)) * 100}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Remaining</span>
-                  <span className="font-medium text-primary">${(campaignData.budget - campaignData.spent).toLocaleString()}</span>
+                  <span className="font-medium text-primary">${campaign?.remaining_budget?.toLocaleString()}</span>
                 </div>
               </div>
               
               <div className="pt-4 border-t border-border space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Budget</span>
-                  <span className="font-bold">${campaignData.budget.toLocaleString()}</span>
+                  <span className="font-bold">${campaign?.budget_allocation?.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Usage</span>
-                  <span className="font-bold text-primary">{((campaignData.spent / campaignData.budget) * 100).toFixed(1)}%</span>
+                  <span className="font-bold text-primary">{((spent / (campaign?.budget_allocation || 1)) * 100).toFixed(1)}%</span>
                 </div>
               </div>
             </CardContent>
@@ -230,7 +300,7 @@ const CampaignDetail = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             title="Total Views"
-            value={45280}
+            value={adDetail?.total_views || 0}
             change={12.5}
             changeLabel="vs last week"
             icon={Eye}
@@ -238,7 +308,7 @@ const CampaignDetail = () => {
           />
           <KPICard
             title="Completions"
-            value={41102}
+            value={adDetail?.completed_views || 0}
             change={8.2}
             changeLabel="vs last week"
             icon={Target}
@@ -246,14 +316,14 @@ const CampaignDetail = () => {
           />
           <KPICard
             title="Completion Rate"
-            value="90.8%"
+            value={`${((adDetail?.completion_rate || 0) * 100).toFixed(1)}%`}
             change={2.1}
             icon={TrendingUp}
             trend="up"
           />
           <KPICard
             title="Unique Users"
-            value={38450}
+            value={viewers.length || adDetail?.opened_views || 0}
             change={5.8}
             icon={Users}
             trend="up"
@@ -440,33 +510,23 @@ const CampaignDetail = () => {
                   <CardTitle className="text-lg">Audience Insights</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="h-5 w-5 text-primary" />
-                      <span>Mobile Users</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-secondary/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Mobile Users</p>
+                      <p className="text-2xl font-bold">78%</p>
                     </div>
-                    <span className="font-bold">78%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Globe className="h-5 w-5 text-primary" />
-                      <span>Unique Regions</span>
+                    <div className="p-4 bg-secondary/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">New Users</p>
+                      <p className="text-2xl font-bold">62%</p>
                     </div>
-                    <span className="font-bold">12</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <RefreshCw className="h-5 w-5 text-primary" />
-                      <span>Repeat Viewers</span>
+                    <div className="p-4 bg-secondary/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Returning</p>
+                      <p className="text-2xl font-bold">38%</p>
                     </div>
-                    <span className="font-bold">23%</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <span>Avg. Watch Time</span>
+                    <div className="p-4 bg-secondary/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">High Value</p>
+                      <p className="text-2xl font-bold">15%</p>
                     </div>
-                    <span className="font-bold">28.4s</span>
                   </div>
                 </CardContent>
               </Card>
@@ -476,55 +536,56 @@ const CampaignDetail = () => {
           <TabsContent value="viewers" className="space-y-6">
             <Card className="card-elevated">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Recent Viewer Activity</CardTitle>
-                <ExportButton filename="viewer-logs" />
+                <CardTitle className="text-lg">Recent Viewers</CardTitle>
+                <ExportButton filename={`campaign-${id}-viewers`} />
               </CardHeader>
               <CardContent>
-                <AnalyticsFilters 
-                  config={{ msisdn: true, status: true, dateRange: true, completionRate: true }}
-                />
-                
-                <div className="mt-4 rounded-lg border border-border overflow-hidden">
+                <div className="rounded-lg border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-secondary/50">
                         <TableHead>MSISDN</TableHead>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead>Completion</TableHead>
-                        <TableHead>Reward Status</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Started At</TableHead>
+                        <TableHead>Completed At</TableHead>
                         <TableHead>Device</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>Location</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {recentViewers.map((viewer, index) => (
-                        <TableRow key={index} className="hover:bg-secondary/30">
-                          <TableCell className="font-mono">
-                            <Link to={`/marketer/msisdn/${viewer.msisdn}`} className="hover:text-primary">
-                              {viewer.msisdn}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{viewer.timestamp}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-2 bg-secondary rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full ${viewer.completion === 100 ? 'bg-green-500' : 'bg-primary'}`}
-                                  style={{ width: `${viewer.completion}%` }}
-                                />
-                              </div>
-                              <span className="text-sm">{viewer.completion}%</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{getRewardBadge(viewer.reward)}</TableCell>
-                          <TableCell>{viewer.device}</TableCell>
-                          <TableCell className="text-right">
-                            <Link to={`/marketer/msisdn/${viewer.msisdn}`}>
-                              <Button variant="ghost" size="sm">View</Button>
-                            </Link>
+                      {viewers.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No viewer data available
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        viewers.map((viewer, index) => (
+                          <TableRow key={index} className="hover:bg-secondary/30">
+                            <TableCell className="font-mono">
+                              <Link to={`/marketer/msisdn/${viewer.msisdn}`} className="hover:text-primary">
+                                {viewer.msisdn}
+                              </Link>
+                            </TableCell>
+                            <TableCell>{getRewardBadge(viewer.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {viewer.started_at ? new Date(viewer.started_at).toLocaleString() : '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {viewer.completed_at ? new Date(viewer.completed_at).toLocaleString() : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                                {viewer.device_info ? `${viewer.device_info.brand} ${viewer.device_info.model}` : 'Unknown'}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {viewer.location?.category || 'Unknown'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
