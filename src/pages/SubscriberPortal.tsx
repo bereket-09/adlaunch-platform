@@ -1,251 +1,249 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle2, Gift, Play, ArrowRight, RefreshCw, Wifi, Globe, Loader2, AlertCircle, Maximize2, Minimize2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Gift,
+  Play,
+  RefreshCw,
+  Wifi,
+  Globe,
+  Loader2,
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { videoAPI, VideoResponse, TrackStartResponse, TrackCompleteResponse } from "@/services/api";
+import API_CONFIG from "@/config/api";
 
-type ViewState = 'loading' | 'ready' | 'playing' | 'completed' | 'rewarded' | 'error';
+type ViewState =
+  | "loading"
+  | "ready"
+  | "playing"
+  | "completed"
+  | "rewarded"
+  | "error";
 
-// Demo video URL - will be replaced by backend video_url
-const DEMO_VIDEO_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
-// Helper to encode meta to base64
-const encodeMetaToBase64 = (meta: Record<string, any>): string => {
-  return btoa(JSON.stringify(meta));
-};
-
-// Get device info
 const getDeviceInfo = () => {
   const ua = navigator.userAgent;
   const isMobile = /Mobi|Android/i.test(ua);
   return {
-    model: isMobile ? 'Smartphone' : 'Desktop',
-    brand: /iPhone|iPad/i.test(ua) ? 'Apple' : /Android/i.test(ua) ? 'Android' : 'Unknown',
+    model: isMobile ? "Smartphone" : "Desktop",
+    brand: /iPhone|iPad/i.test(ua)
+      ? "Apple"
+      : /Android/i.test(ua)
+      ? "Android"
+      : "Unknown",
     userAgent: ua,
   };
 };
 
+const encodeMetaToBase64 = (meta: Record<string, any>) =>
+  btoa(JSON.stringify(meta));
+
+interface AdDetails {
+  sponsor: string;
+  duration: string;
+  reward: string;
+  rewardType: "data" | "airtime";
+}
+
+interface VideoResponse {
+  ad_id: string;
+}
+
 const SubscriberPortal = () => {
   const [searchParams] = useSearchParams();
-  const [viewState, setViewState] = useState<ViewState>('loading');
+  const token = searchParams.get("v") || ""; // <- read query param "v"
+
+  const [viewState, setViewState] = useState<ViewState>("loading");
   const [error, setError] = useState<string | null>(null);
-  
-  // Video data from API
-  const [videoData, setVideoData] = useState<VideoResponse | null>(null);
-  const [currentSecureKey, setCurrentSecureKey] = useState<string>('');
-  const [metaBase64, setMetaBase64] = useState<string>('');
-  
-  // Video player state
+  const [videoUrl, setVideoUrl] = useState<string>("");
+  const [currentSecureKey, setCurrentSecureKey] = useState<string>("");
+  const [metaBase64, setMetaBase64] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [isCssFs, setIsCssFs] = useState(false);
-  
-  // Reward state
-  const [rewardData, setRewardData] = useState<TrackCompleteResponse | null>(null);
-  
+  const [rewardData, setRewardData] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const lastTimeRef = useRef(0);
-  
-  const token = searchParams.get('v') || '';
 
-  // Prepare meta data
+  const adDetails: AdDetails = {
+    sponsor: "ETHIO TELECOM",
+    duration: "30 seconds",
+    reward: "50MB Data Bundle",
+    rewardType: "data",
+  };
+
+  // Prepare meta
   useEffect(() => {
     const deviceInfo = getDeviceInfo();
     const meta = {
-      msisdn: "251912345678", // This would come from MNO integration
-      ip: "127.0.0.1", // This would be detected server-side
+      msisdn: "251912345678",
+      ip: "127.0.0.1",
       userAgent: deviceInfo.userAgent,
-      deviceInfo: {
-        model: deviceInfo.model,
-        brand: deviceInfo.brand,
-      },
-      location: {
-        lat: 8.0,
-        lon: 34.0,
-        category: "Ethiopia",
-      },
+      deviceInfo: { model: deviceInfo.model, brand: deviceInfo.brand },
+      location: { lat: 8.0, lon: 34.0, category: "Ethiopia" },
     };
     setMetaBase64(encodeMetaToBase64(meta));
   }, []);
 
-  // Fetch video data on mount
+  // Fetch video based on token -> get ad_id -> get video blob
   useEffect(() => {
-    const fetchVideo = async () => {
-      if (!token) {
-        // Demo mode - use demo video
-        setVideoData({
-          status: true,
-          ad_id: 'demo',
-          video_url: DEMO_VIDEO_URL,
-          token: 'demo',
-          secure_key: 'demo-key',
-        });
-        setCurrentSecureKey('demo-key');
-        setViewState('ready');
-        return;
-      }
+    if (!token || !metaBase64) return;
 
+    const fetchVideo = async () => {
+      setViewState("loading");
       try {
-        const response = await videoAPI.getVideo(token, metaBase64);
-        if (response.status) {
-          setVideoData(response);
-          setCurrentSecureKey(response.secure_key);
-          setViewState('ready');
-        } else {
-          throw new Error('Failed to load video');
-        }
-      } catch (err) {
-        console.error('Error fetching video:', err);
-        // Fallback to demo mode
-        setVideoData({
-          status: true,
-          ad_id: 'demo',
-          video_url: DEMO_VIDEO_URL,
-          token: token || 'demo',
-          secure_key: 'demo-key',
+        const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
+          headers: {
+            "Content-Type": "application/json",
+            meta_base64: metaBase64,
+          },
         });
-        setCurrentSecureKey('demo-key');
-        setViewState('ready');
+
+        const data = await res.json();
+
+        // Check for API-level error
+        if (data.status === false) {
+          throw new Error(data.error || "Video cannot be loaded");
+        }
+
+        if (!data.ad_id) throw new Error("Failed to get ad_id");
+
+        setCurrentSecureKey(data?.secure_key); // reset secure key
+
+        // Fetch video blob
+        const blobRes = await fetch(
+          `${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`
+        );
+        if (!blobRes.ok) throw new Error("Failed to fetch video blob");
+
+        const blob = await blobRes.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        setVideoUrl(blobUrl);
+        setViewState("ready");
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Unable to load video");
+        setViewState("error");
       }
     };
 
-    if (metaBase64) {
-      fetchVideo();
-    }
+    fetchVideo();
   }, [token, metaBase64]);
 
-  const adDetails = {
-    sponsor: "ETHIO TELECOM",
-    duration: "30 seconds",
-    reward: "50MB Data Bundle",
-    rewardType: 'data' as const,
-  };
-
-  // Handle video start - call track/start API
   const handleStartVideo = async () => {
-    setViewState('playing');
-    
-    if (token && token !== 'demo') {
-      try {
-        const response = await videoAPI.trackStart(token, metaBase64, currentSecureKey);
-        if (response.status) {
-          // Update secure_key with the new one from response
-          setCurrentSecureKey(response.secure_key);
-        }
-      } catch (err) {
-        console.error('Error tracking video start:', err);
-      }
+    if (!currentSecureKey) return;
+    setViewState("playing");
+    try {
+      const res = await fetch(`${API_CONFIG.API_BASE}/track/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secure_key: currentSecureKey,
+          meta: metaBase64,
+          token,
+        }),
+      });
+      const data = await res.json();
+      if (data.status) setCurrentSecureKey(data.secure_key);
+    } catch (err) {
+      console.error("Start video failed", err);
     }
   };
 
-  // Handle video complete - call track/complete API
   const handleVideoComplete = async () => {
-    setViewState('completed');
-    
-    if (token && token !== 'demo') {
-      try {
-        const response = await videoAPI.trackComplete(token, metaBase64, currentSecureKey);
-        if (response.status) {
-          setRewardData(response);
-          setViewState('rewarded');
-        } else {
-          throw new Error('Reward failed');
-        }
-      } catch (err) {
-        console.error('Error completing video:', err);
-        // Show reward anyway for demo
-        setViewState('rewarded');
-      }
-    } else {
-      // Demo mode - simulate reward
-      setTimeout(() => {
-        setViewState('rewarded');
-      }, 2000);
+    setViewState("completed");
+    try {
+      const res = await fetch(`${API_CONFIG.API_BASE}/track/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secure_key: currentSecureKey,
+          meta: metaBase64,
+          token,
+        }),
+      });
+      const data = await res.json();
+      setRewardData(data);
+      setViewState("rewarded");
+    } catch (err) {
+      console.error("Complete video failed", err);
+      setViewState("rewarded");
     }
   };
 
-  const handleWatchAnother = () => {
-    setViewState('ready');
-    setProgress(0);
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-    }
-  };
-
-  const handleBrowseNow = () => {
-    window.location.href = 'https://www.google.com';
-  };
-
-  // Video event handlers
+  // Video events
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || viewState !== 'playing') return;
+    if (!video || viewState !== "playing") return;
 
     const onLoaded = () => {
       setIsVideoLoading(false);
       video.play().catch(() => {});
     };
-
     const onTimeUpdate = () => {
       if (!video.duration) return;
-      const pct = (video.currentTime / video.duration) * 100;
-      setProgress(pct);
+      setProgress((video.currentTime / video.duration) * 100);
       lastTimeRef.current = video.currentTime;
     };
-
     const onSeeking = () => {
-      // Prevent seeking
-      if (Math.abs((video.currentTime || 0) - (lastTimeRef.current || 0)) > 0.5) {
+      if (Math.abs(video.currentTime - lastTimeRef.current) > 0.5)
         video.currentTime = Math.max(0, lastTimeRef.current - 0.1);
-      }
     };
-
     const onEnded = () => {
       setProgress(100);
       handleVideoComplete();
     };
 
-    video.addEventListener('loadeddata', onLoaded);
-    video.addEventListener('timeupdate', onTimeUpdate);
-    video.addEventListener('seeking', onSeeking);
-    video.addEventListener('ended', onEnded);
+    video.addEventListener("loadeddata", onLoaded);
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("seeking", onSeeking);
+    video.addEventListener("ended", onEnded);
 
     return () => {
-      video.removeEventListener('loadeddata', onLoaded);
-      video.removeEventListener('timeupdate', onTimeUpdate);
-      video.removeEventListener('seeking', onSeeking);
-      video.removeEventListener('ended', onEnded);
+      video.removeEventListener("loadeddata", onLoaded);
+      video.removeEventListener("timeupdate", onTimeUpdate);
+      video.removeEventListener("seeking", onSeeking);
+      video.removeEventListener("ended", onEnded);
     };
   }, [viewState, currentSecureKey]);
 
   const handleContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
-  // Fullscreen handlers
   const toggleFullscreen = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
-
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (isCssFs) {
-      root.classList.remove('app-fullscreen');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (isCssFs) {
+      root.classList.remove("app-fullscreen");
       setIsCssFs(false);
     } else {
-      const request = root.requestFullscreen || (root as any).webkitRequestFullscreen;
-      if (request) {
-        request.call(root).catch(() => {
-          root.classList.add('app-fullscreen');
+      const req =
+        root.requestFullscreen || (root as any).webkitRequestFullscreen;
+      if (req)
+        req.call(root).catch(() => {
+          root.classList.add("app-fullscreen");
           setIsCssFs(true);
         });
-      } else {
-        root.classList.add('app-fullscreen');
+      else {
+        root.classList.add("app-fullscreen");
         setIsCssFs(true);
       }
     }
   }, [isCssFs]);
+
+  const handleWatchAnother = () => {
+    setViewState("ready");
+    setProgress(0);
+    if (videoRef.current) videoRef.current.currentTime = 0;
+  };
+  const handleBrowseNow = () =>
+    (window.location.href = "https://www.google.com");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 flex flex-col">
@@ -264,76 +262,125 @@ const SubscriberPortal = () => {
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-3xl">
           {/* Loading State */}
-          {viewState === 'loading' && (
+          {viewState === "loading" && (
             <div className="text-center animate-fade-in">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Loading Your Reward</h1>
-              <p className="text-muted-foreground">Preparing your advertisement...</p>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Loading Your Reward
+              </h1>
+              <p className="text-muted-foreground">
+                Preparing your advertisement...
+              </p>
             </div>
           )}
 
           {/* Error State */}
-          {viewState === 'error' && (
-            <div className="text-center animate-fade-in">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 mb-6">
-                <AlertCircle className="h-10 w-10 text-destructive" />
+          {/* Error State */}
+          {viewState === "error" && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] animate-fade-in px-4">
+              <div className="relative w-28 h-28 mb-6">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-red-400 to-red-600 animate-pulse opacity-30"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <AlertCircle className="h-14 w-14 text-red-700" />
+                </div>
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Something Went Wrong</h1>
-              <p className="text-muted-foreground mb-6">{error || 'Unable to load the advertisement.'}</p>
-              <Button onClick={() => window.location.reload()}>Try Again</Button>
+
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-red-700 mb-3">
+                Oops! Something Went Wrong
+              </h1>
+
+              <p className="text-center text-lg text-red-500/80 mb-6 max-w-md">
+                {error ||
+                  "We couldn't load your advertisement. Please try again or check your connection."}
+              </p>
+
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg"
+                onClick={() => window.location.reload()}
+              >
+                Retry Now
+              </Button>
+
+              <p className="mt-4 text-sm text-red-400/70">
+                If the problem persists, contact support.
+              </p>
             </div>
           )}
 
           {/* Ready to Play State */}
-          {viewState === 'ready' && (
-            <div className="text-center animate-slide-up">
-              <div className="mb-8">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary to-orange-600 mb-6 shadow-orange">
-                  <Gift className="h-12 w-12 text-primary-foreground" />
+          {/* Ready to Play State */}
+          {viewState === "ready" && (
+            <div className="flex flex-col items-center animate-slide-up px-4">
+              {/* Hero Reward */}
+              <div className="mb-10 flex flex-col items-center">
+                <div className="relative w-28 h-28 mb-6">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-600 animate-pulse opacity-40"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Gift className="h-14 w-14 text-white drop-shadow-lg" />
+                  </div>
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
-                  Earn Free {adDetails.rewardType === 'data' ? 'Data' : 'Airtime'}!
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 drop-shadow-md">
+                  Earn Free{" "}
+                  {adDetails.rewardType === "data" ? "Data" : "Airtime"}!
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-md mx-auto">
-                  Watch a short video ad and get <span className="font-bold text-primary">{adDetails.reward}</span> instantly credited to your account.
+                <p className="text-lg text-muted-foreground max-w-md text-center">
+                  Watch a short video ad and get{" "}
+                   <span className="font-bold text-primary">
+                    {adDetails.reward}
+                  </span>{" "}
+                  instantly credited to your account.
                 </p>
               </div>
 
-              {/* Reward Preview */}
-              <div className="bg-card rounded-2xl p-6 shadow-lg border border-border/50 mb-8 max-w-md mx-auto">
+              {/* Reward Card */}
+              <div className="bg-gradient-to-br from-white/60 to-white/20 backdrop-blur-md rounded-3xl p-6 shadow-2xl border border-white/20 mb-8 max-w-md mx-auto transform hover:scale-105 transition-all duration-300">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 rounded-xl bg-primary/10">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-orange-200 shadow-inner">
                     <Wifi className="h-8 w-8 text-primary" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm text-muted-foreground">Your Reward</p>
-                    <p className="text-2xl font-bold text-foreground">{adDetails.reward}</p>
-                    <p className="text-sm text-muted-foreground">Duration: {adDetails.duration}</p>
+                    <p className="text-2xl font-bold text-foreground drop-shadow-sm">
+                      {adDetails.reward}
+                      
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Duration: {adDetails.duration}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <Button 
-                size="lg" 
-                className="btn-primary-gradient text-lg px-10 py-6 rounded-xl gap-3"
+              {/* Watch Button */}
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary to-orange-500 hover:from-orange-500 hover:to-primary text-white font-bold text-lg px-12 py-6 rounded-2xl shadow-xl flex items-center gap-3 transform hover:scale-105 transition-all duration-200"
                 onClick={handleStartVideo}
               >
                 <Play className="h-6 w-6" />
                 Watch Ad & Earn
               </Button>
 
-              <p className="mt-4 text-sm text-muted-foreground">
+              <p className="mt-4 text-sm text-muted-foreground text-center max-w-xs">
                 By watching, you agree to our terms of service
               </p>
             </div>
           )}
 
           {/* Playing State */}
-          {viewState === 'playing' && (
-            <div ref={rootRef} className={`animate-fade-in ${isCssFs ? 'fixed inset-0 z-[9999] bg-black flex items-center justify-center' : ''}`}>
-              <div className={`w-full max-w-3xl ${isCssFs ? 'mx-auto' : ''}`}>
+          {viewState === "playing" && (
+            <div
+              ref={rootRef}
+              className={`animate-fade-in ${
+                isCssFs
+                  ? "fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+                  : ""
+              }`}
+            >
+              <div className={`w-full max-w-3xl ${isCssFs ? "mx-auto" : ""}`}>
                 {/* Reward header */}
                 <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -342,31 +389,40 @@ const SubscriberPortal = () => {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Reward</p>
-                      <p className="text-sm font-semibold">{adDetails.reward}</p>
+                      <p className="text-sm font-semibold">
+                        {adDetails.reward}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
                     <div>Sponsored by</div>
-                    <div className="font-semibold text-foreground">{adDetails.sponsor}</div>
+                    <div className="font-semibold text-foreground">
+                      {adDetails.sponsor}
+                    </div>
                   </div>
                 </div>
 
                 {/* Video container */}
-                <div className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${isCssFs ? 'h-[92vh]' : 'aspect-video'}`} onContextMenu={handleContextMenu}>
-                  {/* Loading overlay */}
+                <div
+                  className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
+                    isCssFs ? "h-[92vh]" : "aspect-video"
+                  }`}
+                  onContextMenu={handleContextMenu}
+                >
                   {isVideoLoading && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
                       <div className="text-center">
                         <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-3" />
-                        <div className="text-sm text-white/80">Loading your ad…</div>
+                        <div className="text-sm text-white/80">
+                          Loading your ad…
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Video element */}
                   <video
                     ref={videoRef}
-                    src={videoData?.video_url || DEMO_VIDEO_URL}
+                    src={videoUrl}
                     playsInline
                     autoPlay
                     className="w-full h-full object-cover"
@@ -376,32 +432,45 @@ const SubscriberPortal = () => {
                     onContextMenu={handleContextMenu}
                   />
 
-                  {/* Fullscreen button */}
                   <div className="absolute top-3 right-3 z-30">
                     <button
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
                       onClick={toggleFullscreen}
                     >
-                      {document.fullscreenElement || isCssFs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                      {document.fullscreenElement || isCssFs ? (
+                        <Minimize2 className="h-4 w-4" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="absolute bottom-0 left-0 right-0 z-20">
-                    <Progress value={Math.min(100, Math.round(progress))} className="h-1.5" />
+                    <Progress
+                      value={Math.min(100, Math.round(progress))}
+                      className="h-1.5"
+                    />
                   </div>
                 </div>
 
-                {/* Progress indicators */}
                 <div className="mt-3 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="inline-flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-full">Ad in progress</div>
+                    <div className="inline-flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-full">
+                      Ad in progress
+                    </div>
                     <div>{Math.round(progress)}%</div>
                   </div>
                   <div className="flex items-center gap-2">
                     {[25, 50, 75, 100].map((m) => (
-                      <div key={m} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${progress >= m ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground'}`}>
-                        {progress >= m ? '✓' : m}
+                      <div
+                        key={m}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          progress >= m
+                            ? "bg-primary text-white"
+                            : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {progress >= m ? "✓" : m}
                       </div>
                     ))}
                   </div>
@@ -410,71 +479,67 @@ const SubscriberPortal = () => {
             </div>
           )}
 
-          {/* Completed/Processing State */}
-          {viewState === 'completed' && (
+          {/* Completed State */}
+          {viewState === "completed" && (
             <div className="text-center animate-fade-in">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Processing Your Reward</h1>
-              <p className="text-muted-foreground">Crediting {adDetails.reward} to your account...</p>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Processing Your Reward
+              </h1>
+              <p className="text-muted-foreground">
+                Crediting {adDetails.reward} to your account...
+              </p>
             </div>
           )}
 
           {/* Rewarded State */}
-          {viewState === 'rewarded' && (
-            <div className="text-center animate-scale-in">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-6">
-                <CheckCircle2 className="h-14 w-14 text-green-600" />
+          {viewState === "rewarded" && (
+            <div className="text-center animate-scale-in px-4">
+              <div className="inline-flex items-center justify-center w-28 h-28 rounded-full bg-green-100 mb-6 shadow-lg">
+                <CheckCircle2 className="h-16 w-16 text-green-600" />
               </div>
-              
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
+
+              <h1 className="text-3xl sm:text-5xl font-extrabold text-foreground mb-3">
                 Congratulations! 🎉
               </h1>
-              
-              <p className="text-lg text-muted-foreground mb-8">
-                <span className="font-bold text-primary">{adDetails.reward}</span> has been credited to your account!
+
+              <p className="text-lg sm:text-xl text-muted-foreground mb-6">
+                <span className="font-bold text-green-700">
+                  {adDetails.reward}
+                </span>{" "}
+                has been successfully credited to your account!
               </p>
 
-              {rewardData && (
-                <div className="text-xs text-muted-foreground mb-4">
+              {rewardData?.reward_record_id && (
+                <p className="text-sm text-green-600 mb-6">
                   Reward ID: {rewardData.reward_record_id}
-                </div>
+                </p>
               )}
 
-              {/* Reward Summary */}
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-8 max-w-md mx-auto">
+              <div className="bg-green-50 border border-green-200 rounded-3xl p-6 mb-8 max-w-md mx-auto shadow-inner">
                 <div className="flex items-center justify-center gap-4">
-                  <div className="p-3 rounded-xl bg-green-100">
+                  <div className="p-4 rounded-full bg-green-100">
                     <Wifi className="h-8 w-8 text-green-600" />
                   </div>
                   <div className="text-left">
                     <p className="text-sm text-green-600">Reward Credited</p>
-                    <p className="text-2xl font-bold text-green-700">{adDetails.reward}</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {adDetails.reward}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="btn-primary-gradient gap-2"
                   onClick={handleBrowseNow}
                 >
                   <Globe className="h-5 w-5" />
                   Browse Now
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-                
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleWatchAnother}
-                >
-                  <RefreshCw className="h-5 w-5" />
-                  Watch Another Ad
                 </Button>
               </div>
             </div>
@@ -487,9 +552,16 @@ const SubscriberPortal = () => {
         <p>© 2024 AdRewards Platform. Powered by Zero-Rated Technology.</p>
       </footer>
 
-      {/* CSS Fullscreen styles */}
       <style>{`
-        .app-fullscreen { position: fixed !important; inset: 0 !important; z-index: 99999 !important; display: flex; align-items: center; justify-content: center; background: black; }
+        .app-fullscreen {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 99999 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: black;
+        }
       `}</style>
     </div>
   );

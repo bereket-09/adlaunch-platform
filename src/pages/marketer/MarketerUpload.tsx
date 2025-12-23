@@ -1,97 +1,128 @@
 import { useState } from "react";
-import { LayoutDashboard, Video, Upload, Settings, CloudUpload, FileVideo, AlertCircle, CheckCircle } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CloudUpload, FileVideo, CheckCircle, AlertCircle } from "lucide-react";
+import MarketerLayout from "@/components/MarketerLayout";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
-const sidebarItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/marketer/dashboard" },
-  { icon: Video, label: "Campaigns", href: "/marketer/campaigns" },
-  { icon: Upload, label: "Upload Video", href: "/marketer/upload" },
-  { icon: Settings, label: "Settings", href: "/marketer/settings" },
-];
+import { adAPI, AdCreateRequest } from "@/services/api";
+// import { adAPI } from "@/services/ad.api";
 
 const MarketerUpload = () => {
+  const [campaignName, setCampaignName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [rateType, setRateType] = useState("");
   const [budget, setBudget] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
+  const marketer_id = localStorage.getItem("marketer_id");
+
+  const costPerViewMap: Record<string, number> = {
+    free: 0,
+    standard: 0.05,
+    premium: 0.1,
+    custom: 0.15,
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const cost_per_view = rateType ? costPerViewMap[rateType] : 0;
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("video/")) {
-      setVideoFile(file);
-    } else {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a valid video file (MP4, WebM, etc.)",
-        variant: "destructive",
-      });
-    }
-  };
+  const isValid =
+    marketer_id &&
+    title &&
+    campaignName &&
+    rateType &&
+    budget &&
+    parseFloat(budget) >= 100 &&
+    startDate &&
+    endDate &&
+    videoFile;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
-    }
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
   };
-
-  const budgetWarning = budget && parseFloat(budget) < 100;
-  const isValid = title && videoFile && rateType && budget && parseFloat(budget) >= 100;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid || !videoFile) return;
 
     setIsUploading(true);
 
-    // Simulate upload
-    setTimeout(() => {
+    try {
+      const payload: AdCreateRequest = {
+        marketer_id: marketer_id!,
+        campaign_name: campaignName,
+        title,
+        cost_per_view,
+        budget_allocation: Number(budget),
+        video_description: description || "",
+        video_file: videoFile,
+        start_date: startDate,
+        end_date: endDate,
+      };
+
+      const json = await adAPI.create(payload);
+
+      if (!json.status) {
+        throw new Error(json.error || "Failed to create campaign");
+      }
+
       toast({
-        title: "Campaign created!",
-        description: "Your video campaign has been created successfully.",
+        title: "Campaign Created",
+        description: "Your advertisement has been submitted for approval.",
       });
+
       navigate("/marketer/campaigns");
-    }, 2000);
+    } catch (err: any) {
+      toast({
+        title: "Upload failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <DashboardLayout
-      title="Create Campaign"
-      sidebarItems={sidebarItems}
-      userType="marketer"
-    >
+    <MarketerLayout title="Create Campaign">
       <div className="max-w-3xl mx-auto space-y-6">
         <Card className="card-elevated">
           <CardHeader>
             <CardTitle>Upload Video</CardTitle>
             <CardDescription>
-              Upload your advertisement video and configure campaign settings
+              Upload your video and configure campaign details
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Video Upload */}
@@ -103,67 +134,85 @@ const MarketerUpload = () => {
                     ? "border-green-500 bg-green-50"
                     : "border-border hover:border-primary/50"
                 }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith("video/")) {
+                    setVideoFile(file);
+                  } else {
+                    toast({
+                      title: "Invalid file type",
+                      description: "Please upload a valid video file",
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
                 {videoFile ? (
                   <div className="space-y-3">
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100">
                       <CheckCircle className="h-7 w-7 text-green-600" />
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">{videoFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                    </div>
+                    <p className="font-medium">{videoFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
                     <Button
-                      type="button"
                       variant="outline"
-                      size="sm"
                       onClick={() => setVideoFile(null)}
+                      type="button"
                     >
                       Remove
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <>
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-orange-100">
                       <CloudUpload className="h-7 w-7 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">
-                        Drop your video here or click to browse
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Supported formats: MP4, WebM, MOV (max 500MB)
-                      </p>
-                    </div>
+                    <p className="font-medium">
+                      Drop your video here or browse
+                    </p>
                     <label>
                       <input
                         type="file"
-                        accept="video/*"
                         className="hidden"
-                        onChange={handleFileChange}
+                        accept="video/*"
+                        onChange={(e) =>
+                          e.target.files?.[0] && setVideoFile(e.target.files[0])
+                        }
                       />
-                      <Button type="button" variant="outline" asChild>
+                      <Button variant="outline" type="button" asChild>
                         <span>
                           <FileVideo className="h-4 w-4 mr-2" />
                           Choose File
                         </span>
                       </Button>
                     </label>
-                  </div>
+                  </>
                 )}
               </div>
 
-              {/* Campaign Title */}
+              {/* Campaign Name */}
               <div className="space-y-2">
-                <Label htmlFor="title">Campaign Title *</Label>
+                <Label>Campaign Name *</Label>
                 <Input
-                  id="title"
-                  placeholder="e.g., Summer Sale 2024"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <Label>Video Title *</Label>
+                <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -172,58 +221,74 @@ const MarketerUpload = () => {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label>Description</Label>
                 <Textarea
-                  id="description"
-                  placeholder="Describe your campaign..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                 />
               </div>
 
-              {/* Rate Type & Budget */}
+              {/* Rate and Budget */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rate">Price per View *</Label>
+                  <Label>Price per View *</Label>
                   <Select value={rateType} onValueChange={setRateType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select rate type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="free">Free (Brand Awareness)</SelectItem>
-                      <SelectItem value="standard">Standard ($0.05/view)</SelectItem>
-                      <SelectItem value="premium">Premium ($0.10/view)</SelectItem>
-                      <SelectItem value="custom">Custom Rate</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="standard">Standard (0.05 Br.)</SelectItem>
+                      <SelectItem value="premium">Premium (0.10 Br.)</SelectItem>
+                      {/* <SelectItem value="custom">Custom (0.15 )</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="budget">Budget Allocation * ($)</Label>
+                  <Label>Budget Allocation ($) *</Label>
                   <Input
-                    id="budget"
                     type="number"
-                    placeholder="e.g., 1000"
+                    min="100"
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
-                    min="100"
                     required
                   />
                 </div>
               </div>
 
-              {/* Warnings */}
-              {budgetWarning && (
+              {/* Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date *</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>End Date *</Label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Budget Warning */}
+              {budget && parseFloat(budget) < 100 && (
                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p className="text-sm">
-                    Minimum budget is $100. Higher budgets allow for more views and better reach.
-                  </p>
+                  <AlertCircle className="h-5 w-5" />
+                  <p>Minimum budget is $100.</p>
                 </div>
               )}
 
-              {/* Submit Button */}
+              {/* Submit */}
               <div className="flex gap-4 pt-4">
                 <Button
                   type="button"
@@ -235,18 +300,18 @@ const MarketerUpload = () => {
                 </Button>
                 <Button
                   type="submit"
-                  variant="gradient"
                   className="flex-1"
+                  variant="gradient"
                   disabled={!isValid || isUploading}
                 >
-                  {isUploading ? "Creating Campaign..." : "Create Campaign"}
+                  {isUploading ? "Creating..." : "Create Campaign"}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </MarketerLayout>
   );
 };
 

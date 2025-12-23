@@ -51,6 +51,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { marketerAPI, budgetAPI, Marketer, Transaction } from "@/services/api";
 import { Link } from "react-router-dom";
+import AdminLayout from "@/components/AdminLayout";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -336,10 +337,8 @@ const handleDeduct = async () => {
 
 
   return (
-    <DashboardLayout
+    <AdminLayout
       title="Manage Marketers"
-      sidebarItems={sidebarItems}
-      userType="admin"
     >
       <div className="space-y-6">
         {/* Actions Bar */}
@@ -820,7 +819,7 @@ const handleDeduct = async () => {
 </Dialog>
 
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 };
 

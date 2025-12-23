@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import AdminLayout from "@/components/AdminLayout";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -58,10 +59,8 @@ const AdminSettings = () => {
   };
 
   return (
-    <DashboardLayout
+    <AdminLayout
       title="Platform Settings"
-      sidebarItems={sidebarItems}
-      userType="admin"
     >
       <div className="space-y-6">
         <div>
@@ -404,7 +403,7 @@ const AdminSettings = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 };
 

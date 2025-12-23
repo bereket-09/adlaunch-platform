@@ -6,26 +6,53 @@ async function fetchAPI<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = options.headers || {};
+
+  // Only set Content-Type to JSON if body is NOT FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   });
 
-  const data = await response.json();
-  
+  // Try parsing JSON safely
+  let data: any;
+  try {
+    console.log("🚀 ~ fetchAPI ~ response:", response)
+    data = await response.json();
+    console.log("🚀 ~ fetchAPI ~ data:", data)
+  } catch (err) {
+    throw new Error('Invalid JSON response from server');
+  }
+
   if (!response.ok) {
-    throw new Error(data.message || 'API request failed');
+    throw new Error(data.error || data.message || 'API request failed');
   }
 
   return data;
 }
+
+
+/**
+ * Fetch wrapper for media (video, audio, images, etc.)
+ * Returns a Blob
+ */
+// Fetch media (video, audio, images, etc.) as Blob
+export async function fetchMedia(url: string, options: RequestInit = {}): Promise<Blob> {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch media: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  return blob;
+}
+
+
 
 // ============ Video/Watch API ============
 
@@ -87,6 +114,18 @@ export interface AdListResponse {
   ads: Ad[];
 }
 
+// export interface AdCreateRequest {
+//   marketer_id: string;
+//   campaign_name: string;
+//   title: string;
+//   cost_per_view: number;
+//   budget_allocation: number;
+//   video_description?: string;
+//   video_file_path: string;
+//   start_date: string;
+//   end_date: string;
+// }
+
 export interface AdCreateRequest {
   marketer_id: string;
   campaign_name: string;
@@ -94,32 +133,62 @@ export interface AdCreateRequest {
   cost_per_view: number;
   budget_allocation: number;
   video_description?: string;
-  video_file_path: string;
+  video_file?: File; // <-- actual File object for upload
   start_date: string;
   end_date: string;
 }
 
 export interface AdUpdateRequest {
-  title?: string;
   campaign_name?: string;
+  title?: string;
   cost_per_view?: number;
   budget_allocation?: number;
-  description?: string;
-  video_file_path?: string;
+  video_description?: string;
   start_date?: string;
   end_date?: string;
-  status?: string;
 }
 
+// export interface AdUpdateRequest {
+//   title?: string;
+//   campaign_name?: string;
+//   cost_per_view?: number;
+//   budget_allocation?: number;
+//   description?: string;
+//   video_file_path?: string;
+//   start_date?: string;
+//   end_date?: string;
+//   status?: string;
+// }
 export const adAPI = {
   list: (): Promise<AdListResponse> =>
     fetchAPI(API_ENDPOINTS.AD.LIST),
 
-  create: (data: AdCreateRequest): Promise<{ status: boolean; ad: Ad }> =>
-    fetchAPI(API_ENDPOINTS.AD.CREATE, {
-      method: 'POST',
-      body: JSON.stringify(data),
+
+  listByMarketer: (marketerId: any): Promise<any> =>
+    fetchMedia(API_ENDPOINTS.AD.ListByMarketer(marketerId), {
+      method: 'GET'
     }),
+
+  create: async (data: AdCreateRequest): Promise<{ status: boolean; ad: Ad }> => {
+    const formData = new FormData();
+
+    // Append all fields
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && key !== "video_file") {
+        formData.append(key, String(value));
+      }
+    });
+
+    // Append the video file
+    if (data.video_file) {
+      formData.append("video", data.video_file, data.video_file.name);
+    }
+
+    return fetchAPI(API_ENDPOINTS.AD.CREATE, {
+      method: 'POST',
+      body: formData, // Multer expects FormData
+    });
+  },
 
   approve: (adId: string): Promise<{ status: boolean; ad: Ad }> =>
     fetchAPI(API_ENDPOINTS.AD.APPROVE, {
@@ -132,7 +201,14 @@ export const adAPI = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  getVideo: (adID: any): Promise<any> =>
+    fetchMedia(API_ENDPOINTS.AD.VIDEO(adID), {
+      method: 'GET'
+    })
 };
+
+
 
 // ============ Marketer API ============
 
@@ -256,7 +332,11 @@ export interface AdAnalytics {
 export interface AdDetailAnalytics {
   [key: string]: any;
 }
-  //   status: boolean;
+
+export interface MarketerDashoboardAnalytics {
+  [key: string]: any;
+}
+//   status: boolean;
 //   ad_id: string;
 //   total_views: number;
 //   opened_views: number;
@@ -354,12 +434,16 @@ export interface MarketerAnalytics extends Marketer {
   total_cost_per_view: number;
 }
 
+
 export const analyticsAPI = {
   getAds: (): Promise<{ status: boolean; ads: AdAnalytics[] }> =>
     fetchAPI(API_ENDPOINTS.ANALYTICS.ADS),
 
   getMarketers: (): Promise<{ status: boolean; marketers: MarketerAnalytics[] }> =>
     fetchAPI(API_ENDPOINTS.ANALYTICS.MARKETERS),
+
+  getMarketerAnalysis: (marketerId: string): Promise<MarketerDashoboardAnalytics> =>
+    fetchAPI(API_ENDPOINTS.ANALYTICS.Marketer_DETAIL(marketerId)),
 
   getAudits: (): Promise<{ status: boolean; audits: AuditLog[] }> =>
     fetchAPI(API_ENDPOINTS.ANALYTICS.AUDITS),

@@ -16,14 +16,18 @@ interface DashboardSidebarProps {
   onClose: () => void;
 }
 
-const DashboardSidebar = ({ items, isOpen, onClose }: DashboardSidebarProps) => {
+const DashboardSidebar = ({
+  items,
+  isOpen,
+  onClose,
+}: DashboardSidebarProps) => {
   const location = useLocation();
 
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
@@ -70,10 +74,21 @@ const DashboardSidebar = ({ items, isOpen, onClose }: DashboardSidebarProps) => 
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="bg-orange-100 rounded-xl p-4">
-            <p className="text-sm font-medium text-foreground mb-1">Need Help?</p>
-            <p className="text-xs text-muted-foreground mb-3">Check our documentation for guides and support.</p>
-            <Button variant="gradient" size="sm" className="w-full">
-              View Docs
+            <p className="text-sm font-medium text-foreground mb-1">
+              Need Help?
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Reach out to our team for guides and support.
+            </p>
+
+            {/* Assuming your Button component supports rendering as an anchor tag */}
+            <Button
+              variant="gradient"
+              size="sm"
+              className="w-full"
+              asChild // or similar prop to render as a different element
+            >
+              <a href="mailto:support@adPro.com">Contact Support</a>
             </Button>
           </div>
         </div>

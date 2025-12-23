@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
+import { API_ENDPOINTS } from "@/config/api";
 
 const MarketerLogin = () => {
   const [email, setEmail] = useState("");
@@ -15,28 +16,99 @@ const MarketerLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-    // Simulate login (replace with actual auth in production)
-    setTimeout(() => {
-      if (email && password) {
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in to your marketer dashboard.",
-        });
-        navigate("/marketer/dashboard");
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Please check your credentials and try again.",
-          variant: "destructive",
-        });
-      }
+  try {
+    const payload = { email, password };
+
+    const res = await fetch(API_ENDPOINTS.MARKETER.LOGIN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.status) {
+      toast({
+        title: "Login failed",
+        description: data.error || "Invalid credentials.",
+        variant: "destructive",
+      });
       setIsLoading(false);
-    }, 1000);
-  };
+      return;
+    }
+
+    const marketerStatus = data.marketer?.status;
+
+    // Handle statuses
+    if (marketerStatus === "pendingPassChange") {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("marketer_id", data.marketer.id);
+      localStorage.setItem("userInfo", JSON.stringify(data.marketer));
+      localStorage.setItem("status", marketerStatus);
+      navigate("/marketer/update-password");
+      setIsLoading(false);
+      return;
+    }
+
+    if (marketerStatus === "active") {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("marketer_id", data.marketer.id);
+      localStorage.setItem("userInfo", JSON.stringify (data.marketer));
+      localStorage.setItem("status", marketerStatus);
+      toast({
+        title: `Welcome ${data.marketer.name}!`,
+        description: "Login successful.",
+      });
+      navigate("/marketer/dashboard");
+      setIsLoading(false);
+      return;
+    }
+
+    // Block inactive / deactivated users
+    toast({
+      title: "Login blocked",
+      description: `Your account is ${marketerStatus}. Please contact the administrator.`,
+      variant: "destructive",
+    });
+  } catch (err: any) {
+    console.error("Login error:", err);
+    toast({
+      title: "Login failed",
+      description: "Something went wrong. Try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+
+  //   // Simulate login (replace with actual auth in production)
+  //   setTimeout(() => {
+  //     if (email && password) {
+  //       toast({
+  //         title: "Welcome back!",
+  //         description: "Successfully logged in to your marketer dashboard.",
+  //       });
+  //       navigate("/marketer/dashboard");
+  //     } else {
+  //       toast({
+  //         title: "Login failed",
+  //         description: "Please check your credentials and try again.",
+  //         variant: "destructive",
+  //       });
+  //     }
+  //     setIsLoading(false);
+  //   }, 1000);
+  // };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -88,7 +160,11 @@ const MarketerLogin = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -135,11 +211,9 @@ const MarketerLogin = () => {
       {/* Right side - Decoration */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-orange-600 items-center justify-center p-12">
         <div className="text-primary-foreground max-w-md space-y-6">
-          <h2 className="text-4xl font-bold">
-            Grow Your Brand with Video Ads
-          </h2>
+          <h2 className="text-4xl font-bold">Grow Your Brand with Video Ads</h2>
           <p className="text-lg opacity-90">
-            Reach millions of engaged viewers with targeted video campaigns. 
+            Reach millions of engaged viewers with targeted video campaigns.
             Track performance, optimize spend, and maximize ROI.
           </p>
           <div className="flex gap-8 pt-4">

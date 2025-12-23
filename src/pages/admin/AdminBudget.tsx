@@ -1,19 +1,48 @@
 import { useState } from "react";
-import { 
-  LayoutDashboard, Users, Video, BarChart3, Settings, DollarSign,
-  Save, Plus, Trash2, Edit2, Shield
+import {
+  LayoutDashboard,
+  Users,
+  Video,
+  BarChart3,
+  Settings,
+  DollarSign,
+  Save,
+  Plus,
+  Trash2,
+  Edit2,
+  Shield,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import AdminLayout from "@/components/AdminLayout";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
@@ -26,18 +55,77 @@ const sidebarItems = [
 ];
 
 const rateTiers = [
-  { id: 1, name: "Free", rate: 0.00, description: "Basic tier for new advertisers", campaigns: 145 },
-  { id: 2, name: "Standard", rate: 0.10, description: "Default rate for most campaigns", campaigns: 523 },
-  { id: 3, name: "Premium", rate: 0.15, description: "Priority placement and better targeting", campaigns: 224 },
-  { id: 4, name: "Enterprise", rate: 0.20, description: "Custom solutions for large advertisers", campaigns: 45 },
+  {
+    id: 1,
+    name: "Free",
+    rate: 0.0,
+    description: "Basic tier for new advertisers",
+    campaigns: 0,
+  },
+  {
+    id: 2,
+    name: "Standard",
+    rate: 0.1,
+    description: "Default rate for most campaigns",
+    campaigns: 2,
+  },
+  {
+    id: 3,
+    name: "Premium",
+    rate: 0.15,
+    description: "Priority placement and better targeting",
+    campaigns: 6,
+  },
+  {
+    id: 4,
+    name: "Enterprise",
+    rate: 1.2,
+    description: "Custom solutions for large advertisers",
+    campaigns: 0,
+  },
 ];
 
 const marketerLimits = [
-  { id: 1, marketer: "TechCorp Inc.", maxBudget: 100000, currentSpend: 45000, monthlyLimit: 50000, status: "active" },
-  { id: 2, marketer: "Style House", maxBudget: 75000, currentSpend: 32000, monthlyLimit: 40000, status: "active" },
-  { id: 3, marketer: "QuickEats", maxBudget: 150000, currentSpend: 58000, monthlyLimit: 60000, status: "warning" },
-  { id: 4, marketer: "GameZone", maxBudget: 50000, currentSpend: 22000, monthlyLimit: 25000, status: "active" },
-  { id: 5, marketer: "Wanderlust", maxBudget: 80000, currentSpend: 38000, monthlyLimit: 45000, status: "active" },
+  {
+    id: 1,
+    marketer: "TechCorp Inc.",
+    maxBudget: 100000,
+    currentSpend: 45000,
+    monthlyLimit: 50000,
+    status: "active",
+  },
+  {
+    id: 2,
+    marketer: "Style House",
+    maxBudget: 75000,
+    currentSpend: 32000,
+    monthlyLimit: 40000,
+    status: "active",
+  },
+  {
+    id: 3,
+    marketer: "QuickEats",
+    maxBudget: 150000,
+    currentSpend: 58000,
+    monthlyLimit: 60000,
+    status: "warning",
+  },
+  {
+    id: 4,
+    marketer: "GameZone",
+    maxBudget: 50000,
+    currentSpend: 22000,
+    monthlyLimit: 25000,
+    status: "active",
+  },
+  {
+    id: 5,
+    marketer: "Wanderlust",
+    maxBudget: 80000,
+    currentSpend: 38000,
+    monthlyLimit: 45000,
+    status: "active",
+  },
 ];
 
 const AdminBudget = () => {
@@ -53,21 +141,21 @@ const AdminBudget = () => {
   };
 
   return (
-    <DashboardLayout
-      title="Budget Controls"
-      sidebarItems={sidebarItems}
-      userType="admin"
-    >
+    <AdminLayout title="Budget Controls">
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Budget & Rate Controls</h1>
-          <p className="text-muted-foreground">Manage platform-wide budget settings and rate tiers</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Budget & Rate Controls
+          </h1>
+          <p className="text-muted-foreground">
+            Manage platform-wide budget settings and rate tiers
+          </p>
         </div>
 
         <Tabs defaultValue="rates" className="space-y-6">
           <TabsList className="bg-secondary/50">
             <TabsTrigger value="rates">Rate Tiers</TabsTrigger>
-            <TabsTrigger value="limits">Marketer Limits</TabsTrigger>
+            {/* <TabsTrigger value="limits">Marketer Limits</TabsTrigger> */}
             <TabsTrigger value="settings">Global Settings</TabsTrigger>
           </TabsList>
 
@@ -76,7 +164,9 @@ const AdminBudget = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>CPC Rate Tiers</CardTitle>
-                  <CardDescription>Configure cost-per-completion rates for different tiers</CardDescription>
+                  <CardDescription>
+                    Configure cost-per-completion rates for different tiers
+                  </CardDescription>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -102,7 +192,9 @@ const AdminBudget = () => {
                         <Label>Description</Label>
                         <Input placeholder="Description of this tier" />
                       </div>
-                      <Button className="w-full btn-primary-gradient">Create Tier</Button>
+                      <Button className="w-full btn-primary-gradient">
+                        Create Tier
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -115,31 +207,46 @@ const AdminBudget = () => {
                         <TableHead>Tier Name</TableHead>
                         <TableHead>Rate (CPC)</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Active Campaigns</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="text-right">
+                          Active Campaigns
+                        </TableHead>
+                        {/* <TableHead className="text-right">Actions</TableHead> */}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rateTiers.map((tier) => (
-                        <TableRow key={tier.id} className="hover:bg-secondary/30">
-                          <TableCell className="font-medium">{tier.name}</TableCell>
+                        <TableRow
+                          key={tier.id}
+                          className="hover:bg-secondary/30"
+                        >
+                          <TableCell className="font-medium">
+                            {tier.name}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-mono">
-                              ${tier.rate.toFixed(2)}
+                              {tier.rate.toFixed(2)} Br.
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{tier.description}</TableCell>
-                          <TableCell className="text-right">{tier.campaigns}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {tier.description}
+                          </TableCell>
                           <TableCell className="text-right">
+                            {tier.campaigns}
+                          </TableCell>
+                          {/* <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button variant="ghost" size="icon">
                                 <Edit2 className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive"
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </TableCell>
+                          </TableCell> */}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -149,7 +256,7 @@ const AdminBudget = () => {
             </Card>
 
             {/* Revenue Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="card-elevated">
                 <CardContent className="pt-6">
                   <p className="text-sm text-muted-foreground">Total Revenue (This Month)</p>
@@ -171,14 +278,16 @@ const AdminBudget = () => {
                   <p className="text-sm text-muted-foreground mt-1">Processing in next cycle</p>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
           </TabsContent>
 
           <TabsContent value="limits" className="space-y-6">
             <Card className="card-elevated">
               <CardHeader>
                 <CardTitle>Marketer Budget Limits</CardTitle>
-                <CardDescription>Set individual budget limits for each marketer</CardDescription>
+                <CardDescription>
+                  Set individual budget limits for each marketer
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border border-border overflow-hidden">
@@ -187,38 +296,69 @@ const AdminBudget = () => {
                       <TableRow className="bg-secondary/50">
                         <TableHead>Marketer</TableHead>
                         <TableHead className="text-right">Max Budget</TableHead>
-                        <TableHead className="text-right">Current Spend</TableHead>
-                        <TableHead className="text-right">Monthly Limit</TableHead>
+                        <TableHead className="text-right">
+                          Current Spend
+                        </TableHead>
+                        <TableHead className="text-right">
+                          Monthly Limit
+                        </TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {marketerLimits.map((marketer) => (
-                        <TableRow key={marketer.id} className="hover:bg-secondary/30">
-                          <TableCell className="font-medium">{marketer.marketer}</TableCell>
-                          <TableCell className="text-right">${marketer.maxBudget.toLocaleString()}</TableCell>
+                        <TableRow
+                          key={marketer.id}
+                          className="hover:bg-secondary/30"
+                        >
+                          <TableCell className="font-medium">
+                            {marketer.marketer}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ${marketer.maxBudget.toLocaleString()}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full ${(marketer.currentSpend / marketer.monthlyLimit) > 0.9 ? 'bg-red-500' : 'bg-primary'}`}
-                                  style={{ width: `${(marketer.currentSpend / marketer.monthlyLimit) * 100}%` }}
+                                <div
+                                  className={`h-full ${
+                                    marketer.currentSpend /
+                                      marketer.monthlyLimit >
+                                    0.9
+                                      ? "bg-red-500"
+                                      : "bg-primary"
+                                  }`}
+                                  style={{
+                                    width: `${
+                                      (marketer.currentSpend /
+                                        marketer.monthlyLimit) *
+                                      100
+                                    }%`,
+                                  }}
                                 />
                               </div>
                               ${marketer.currentSpend.toLocaleString()}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">${marketer.monthlyLimit.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">
+                            ${marketer.monthlyLimit.toLocaleString()}
+                          </TableCell>
                           <TableCell>
                             {marketer.status === "active" ? (
-                              <Badge className="bg-green-100 text-green-700">Active</Badge>
+                              <Badge className="bg-green-100 text-green-700">
+                                Active
+                              </Badge>
                             ) : (
-                              <Badge className="bg-yellow-100 text-yellow-700">Warning</Badge>
+                              <Badge className="bg-yellow-100 text-yellow-700">
+                                Warning
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Edit Limits</Button>
+                            <Button variant="ghost" size="sm">
+                              Edit Limits
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -233,54 +373,88 @@ const AdminBudget = () => {
             <Card className="card-elevated">
               <CardHeader>
                 <CardTitle>Global Budget Settings</CardTitle>
-                <CardDescription>Configure platform-wide budget behavior</CardDescription>
+                <CardDescription>
+                  Configure platform-wide budget behavior
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Automatic Budget Deduction</Label>
-                    <p className="text-sm text-muted-foreground">Automatically deduct from marketer budget per completion</p>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically deduct from marketer budget per completion
+                    </p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={globalSettings.autoDeduction}
-                    onCheckedChange={(checked) => setGlobalSettings({ ...globalSettings, autoDeduction: checked })}
+                    onCheckedChange={(checked) =>
+                      setGlobalSettings({
+                        ...globalSettings,
+                        autoDeduction: checked,
+                      })
+                    }
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Budget Alert Threshold (%)</Label>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     value={globalSettings.budgetAlertThreshold}
-                    onChange={(e) => setGlobalSettings({ ...globalSettings, budgetAlertThreshold: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setGlobalSettings({
+                        ...globalSettings,
+                        budgetAlertThreshold: parseInt(e.target.value),
+                      })
+                    }
                     className="w-32"
                   />
-                  <p className="text-sm text-muted-foreground">Send alert when budget usage reaches this percentage</p>
+                  <p className="text-sm text-muted-foreground">
+                    Send alert when budget usage reaches this percentage
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Auto-Pause at Zero Budget</Label>
-                    <p className="text-sm text-muted-foreground">Automatically pause campaigns when budget is exhausted</p>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically pause campaigns when budget is exhausted
+                    </p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={globalSettings.pauseCampaignsAtZero}
-                    onCheckedChange={(checked) => setGlobalSettings({ ...globalSettings, pauseCampaignsAtZero: checked })}
+                    onCheckedChange={(checked) =>
+                      setGlobalSettings({
+                        ...globalSettings,
+                        pauseCampaignsAtZero: checked,
+                      })
+                    }
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Allow Negative Balance</Label>
-                    <p className="text-sm text-muted-foreground">Allow campaigns to run with negative budget (not recommended)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Allow campaigns to run with negative budget (not
+                      recommended)
+                    </p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={globalSettings.allowNegativeBalance}
-                    onCheckedChange={(checked) => setGlobalSettings({ ...globalSettings, allowNegativeBalance: checked })}
+                    onCheckedChange={(checked) =>
+                      setGlobalSettings({
+                        ...globalSettings,
+                        allowNegativeBalance: checked,
+                      })
+                    }
                   />
                 </div>
 
-                <Button onClick={handleSave} className="btn-primary-gradient gap-2">
+                <Button
+                  onClick={handleSave}
+                  className="btn-primary-gradient gap-2"
+                >
                   <Save className="h-4 w-4" />
                   Save Settings
                 </Button>
@@ -289,7 +463,7 @@ const AdminBudget = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 };
 
