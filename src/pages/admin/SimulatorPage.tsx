@@ -26,7 +26,7 @@ const SimulatorPage = () => {
     setResponse(null);
 
     try {
-      const res = await fetch("/api/v1/link/create", {
+      const res = await fetch("http://localhost:3000/api/v1/link/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ msisdn }),
