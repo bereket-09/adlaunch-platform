@@ -579,7 +579,7 @@ const handleUserUnmute = () => {
     playsInline
     autoPlay
     muted
-    className="w-full h-full object-contain"
+    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
     disablePictureInPicture
     controls={false}
     controlsList="nodownload noplaybackrate"
