@@ -521,6 +521,7 @@ const handleUserUnmute = () => {
             >
               <div className={`w-full max-w-3xl ${isCssFs ? "mx-auto" : ""}`}>
                 {/* Reward header */}
+                <div className={`${isCssFs ? "hidden" : ""}`}>
                 <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary text-white">
@@ -540,7 +541,7 @@ const handleUserUnmute = () => {
                     </div>
                   </div>
                 </div>
-
+              </div>
                 {/* Video container */}
                 {/* <div
                   className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
@@ -578,7 +579,7 @@ const handleUserUnmute = () => {
     playsInline
     autoPlay
     muted
-    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
+    className="w-full h-full object-contain"
     disablePictureInPicture
     controls={false}
     controlsList="nodownload noplaybackrate"
