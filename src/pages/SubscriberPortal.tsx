@@ -363,6 +363,17 @@ useEffect(() => {
 
 
 
+const handleUserUnmute = () => {
+  const video = videoRef.current;
+  if (!video) return;
+
+  if (video.muted) {
+    video.muted = false;
+    video.volume = 1;
+    video.play().catch(() => console.warn("Play after unmute blocked"));
+  }
+};
+
 
 
   const handleWatchAnother = () => {
@@ -572,6 +583,7 @@ useEffect(() => {
     controls={false}
     controlsList="nodownload noplaybackrate"
     onContextMenu={handleContextMenu}
+    onClick={handleUserUnmute} // <-- user interaction triggers unmute
   />
 
 
