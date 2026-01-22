@@ -600,7 +600,7 @@ const handleUserUnmute = () => {
                     onContextMenu={handleContextMenu}
                   /> */}
 
-                  <div className="absolute top-3 right-3 z-[9999]">
+                  <div className="absolute top-3 right-3 z-[99999]">
                     <button
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
                       onClick={toggleFullscreen}
@@ -724,7 +724,7 @@ const handleUserUnmute = () => {
        .app-fullscreen {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 99999 !important;
+  z-index: 99998 !important;
   display: flex;
   align-items: center;
   justify-content: center;
