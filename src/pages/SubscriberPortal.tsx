@@ -33,8 +33,8 @@ const getDeviceInfo = () => {
     brand: /iPhone|iPad/i.test(ua)
       ? "Apple"
       : /Android/i.test(ua)
-        ? "Android"
-        : "Unknown",
+      ? "Android"
+      : "Unknown",
     userAgent: ua,
   };
 };
@@ -43,7 +43,7 @@ const encodeMetaToBase64 = (meta: Record<string, any>) =>
   btoa(JSON.stringify(meta));
 
 interface AdDetails {
-  sponsor: string; f
+  sponsor: string;f
   duration: string;
   reward: string;
   rewardType: "data" | "airtime";
@@ -136,78 +136,78 @@ const SubscriberPortal = () => {
   //   fetchVideo();
   // }, [token, metaBase64]);
 
-  useEffect(() => {
-    if (!token || !metaBase64) return;
+useEffect(() => {
+  if (!token || !metaBase64) return;
 
-    const fetchVideo = async () => {
-      setViewState("loading");
-      try {
-        const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
-          headers: {
-            "Content-Type": "application/json",
-            meta_base64: metaBase64,
-          },
-        });
+  const fetchVideo = async () => {
+    setViewState("loading");
+    try {
+      const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
+        headers: {
+          "Content-Type": "application/json",
+          meta_base64: metaBase64,
+        },
+      });
 
-        const data = await res.json();
-        if (data.status === false) throw new Error(data.error || "Video cannot be loaded");
-        if (!data.ad_id) throw new Error("Failed to get ad_id");
+      const data = await res.json();
+      if (data.status === false) throw new Error(data.error || "Video cannot be loaded");
+      if (!data.ad_id) throw new Error("Failed to get ad_id");
 
-        setCurrentSecureKey(data?.secure_key);
+      setCurrentSecureKey(data?.secure_key);
 
-        // Fetch video blob
-        const blobRes = await fetch(`${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`);
-        if (!blobRes.ok) throw new Error("Failed to fetch video blob");
+      // Fetch video blob
+      const blobRes = await fetch(`${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`);
+      if (!blobRes.ok) throw new Error("Failed to fetch video blob");
 
-        const blob = await blobRes.blob();
-        const blobUrl = URL.createObjectURL(blob);
+      const blob = await blobRes.blob();
+      const blobUrl = URL.createObjectURL(blob);
 
-        setVideoUrl(blobUrl);
+      setVideoUrl(blobUrl);
 
-        // --- AUTO START ---
-        setViewState("playing");      // directly go to playing state
-        handleStartVideo();           // trigger start API call
+      // --- AUTO START ---
+      setViewState("playing");      // directly go to playing state
+      handleStartVideo();           // trigger start API call
 
-        // Force play and auto-unmute after a short delay
-        // Force play and handle unmute correctly
-        const playVideoSafely = async () => {
-          if (!videoRef.current) return;
+      // Force play and auto-unmute after a short delay
+    // Force play and handle unmute correctly
+const playVideoSafely = async () => {
+  if (!videoRef.current) return;
 
-          const video = videoRef.current;
+  const video = videoRef.current;
 
-          // Start muted first
-          video.muted = true;
-          try {
-            await video.play();
-          } catch {
-            console.warn("Autoplay blocked, user interaction needed");
-          }
+  // Start muted first
+  video.muted = true;
+  try {
+    await video.play();
+  } catch {
+    console.warn("Autoplay blocked, user interaction needed");
+  }
 
-          // Auto unmute after a short delay
-          setTimeout(async () => {
-            video.muted = false;
-            video.volume = 1;
-            try {
-              // Re-trigger play to prevent pause on unmute
-              await video.play();
-            } catch {
-              console.warn("Play after unmute blocked");
-            }
-          }, 500); // 0.5s is usually enough
-        };
+  // Auto unmute after a short delay
+  setTimeout(async () => {
+    video.muted = false;
+    video.volume = 1;
+    try {
+      // Re-trigger play to prevent pause on unmute
+      await video.play();
+    } catch {
+      console.warn("Play after unmute blocked");
+    }
+  }, 500); // 0.5s is usually enough
+};
 
-        playVideoSafely();
+playVideoSafely();
 
 
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Unable to load video");
-        setViewState("error");
-      }
-    };
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Unable to load video");
+      setViewState("error");
+    }
+  };
 
-    fetchVideo();
-  }, [token, metaBase64]);
+  fetchVideo();
+}, [token, metaBase64]);
 
 
 
@@ -254,20 +254,20 @@ const SubscriberPortal = () => {
   };
 
 
-  //   useEffect(() => {
-  //   const handleFsChange = () => {
-  //     const video = videoRef.current;
-  //     if (!video) return;
-  //     // If the current fullscreen element is our video, CSS fullscreen mode is active
-  //     setIsCssFs(document.fullscreenElement === video);
-  //   };
+//   useEffect(() => {
+//   const handleFsChange = () => {
+//     const video = videoRef.current;
+//     if (!video) return;
+//     // If the current fullscreen element is our video, CSS fullscreen mode is active
+//     setIsCssFs(document.fullscreenElement === video);
+//   };
 
-  //   document.addEventListener("fullscreenchange", handleFsChange);
+//   document.addEventListener("fullscreenchange", handleFsChange);
 
-  //   return () => {
-  //     document.removeEventListener("fullscreenchange", handleFsChange);
-  //   };
-  // }, []);
+//   return () => {
+//     document.removeEventListener("fullscreenchange", handleFsChange);
+//   };
+// }, []);
 
 
   // Video events
@@ -277,7 +277,7 @@ const SubscriberPortal = () => {
 
     const onLoaded = () => {
       setIsVideoLoading(false);
-      video.play().catch(() => { });
+      video.play().catch(() => {});
     };
     const onTimeUpdate = () => {
       if (!video.duration) return;
@@ -330,49 +330,49 @@ const SubscriberPortal = () => {
   //   }
   // }, [isCssFs]);
 
-  // Fullscreen toggle
-  const toggleFullscreen = useCallback(() => {
+// Fullscreen toggle
+const toggleFullscreen = useCallback(() => {
+  const video = videoRef.current;
+  if (!video) return;
+
+  if (document.fullscreenElement === video) {
+    document.exitFullscreen().catch(() => {});
+    setIsCssFs(false);
+  } else {
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch(() => {});
+      setIsCssFs(true);
+    }
+  }
+}, []);
+
+// Sync CSS state when user presses Esc or browser toggles fullscreen
+useEffect(() => {
+  const handleFsChange = () => {
     const video = videoRef.current;
     if (!video) return;
-
-    if (document.fullscreenElement === video) {
-      document.exitFullscreen().catch(() => { });
-      setIsCssFs(false);
-    } else {
-      if (video.requestFullscreen) {
-        video.requestFullscreen().catch(() => { });
-        setIsCssFs(true);
-      }
-    }
-  }, []);
-
-  // Sync CSS state when user presses Esc or browser toggles fullscreen
-  useEffect(() => {
-    const handleFsChange = () => {
-      const video = videoRef.current;
-      if (!video) return;
-      setIsCssFs(document.fullscreenElement === video);
-    };
-
-    document.addEventListener("fullscreenchange", handleFsChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFsChange);
-    };
-  }, []);
-
-
-
-  const handleUserUnmute = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.muted) {
-      video.muted = false;
-      video.volume = 1;
-      video.play().catch(() => console.warn("Play after unmute blocked"));
-    }
+    setIsCssFs(document.fullscreenElement === video);
   };
+
+  document.addEventListener("fullscreenchange", handleFsChange);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", handleFsChange);
+  };
+}, []);
+
+
+
+const handleUserUnmute = () => {
+  const video = videoRef.current;
+  if (!video) return;
+
+  if (video.muted) {
+    video.muted = false;
+    video.volume = 1;
+    video.play().catch(() => console.warn("Play after unmute blocked"));
+  }
+};
 
 
 
@@ -467,7 +467,7 @@ const SubscriberPortal = () => {
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-md text-center">
                   Watch a short video ad and get{" "}
-                  <span className="font-bold text-primary">
+                   <span className="font-bold text-primary">
                     {adDetails.reward}
                   </span>{" "}
                   instantly credited to your account.
@@ -484,7 +484,7 @@ const SubscriberPortal = () => {
                     <p className="text-sm text-muted-foreground">Your Reward</p>
                     <p className="text-2xl font-bold text-foreground drop-shadow-sm">
                       {adDetails.reward}
-
+                      
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Duration: {adDetails.duration}
@@ -513,34 +513,35 @@ const SubscriberPortal = () => {
           {viewState === "playing" && (
             <div
               ref={rootRef}
-              className={`animate-fade-in ${isCssFs
+              className={`animate-fade-in ${
+                isCssFs
                   ? "fixed inset-0 z-[9999] bg-black flex items-center justify-center"
                   : ""
-                }`}
+              }`}
             >
               <div className={`w-full max-w-3xl ${isCssFs ? "mx-auto" : ""}`}>
                 {/* Reward header */}
                 <div className={`${isCssFs ? "hidden" : ""}`}>
-                  <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary text-white">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>c
-                      <div>
-                        <p className="text-xs text-muted-foreground">Reward</p>
-                        <p className="text-sm font-semibold">
-                          {adDetails.reward}
-                        </p>
-                      </div>
+                <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary text-white">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>c
+                    <div>
+                      <p className="text-xs text-muted-foreground">Reward</p>
+                      <p className="text-sm font-semibold">
+                        {adDetails.reward}
+                      </p>
                     </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <div>Sponsored by</div>
-                      <div className="font-semibold text-foreground">
-                        {adDetails.sponsor}
-                      </div>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    <div>Sponsored by</div>
+                    <div className="font-semibold text-foreground">
+                      {adDetails.sponsor}
                     </div>
                   </div>
                 </div>
+              </div>
                 {/* Video container */}
                 {/* <div
                   className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
@@ -549,15 +550,16 @@ const SubscriberPortal = () => {
                   onContextMenu={handleContextMenu}
                 > */}
                 <div
-                  className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${isCssFs ? "w-full h-full" : "w-full max-w-3xl"
-                    }`}
-                  style={{
-                    aspectRatio: !isCssFs && videoRef.current?.videoWidth
-                      ? `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}`
-                      : undefined,
-                  }}
-                  onContextMenu={handleContextMenu}
-                >
+  className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
+    isCssFs ? "w-full h-full" : "w-full max-w-3xl"
+  }`}
+  style={{
+    aspectRatio: !isCssFs && videoRef.current?.videoWidth
+      ? `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}`
+      : undefined,
+  }}
+  onContextMenu={handleContextMenu}
+>
 
                   {isVideoLoading && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
@@ -571,19 +573,19 @@ const SubscriberPortal = () => {
                   )}
 
 
-                  <video
-                    ref={videoRef}
-                    src={videoUrl}
-                    playsInline
-                    autoPlay
-                    muted
-                    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
-                    disablePictureInPicture
-                    controls={false}
-                    controlsList="nodownload noplaybackrate"
-                    onContextMenu={handleContextMenu}
-                    onClick={handleUserUnmute} // <-- user interaction triggers unmute
-                  />
+<video
+    ref={videoRef}
+    src={videoUrl}
+    playsInline
+    autoPlay
+    muted
+    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
+    disablePictureInPicture
+    controls={false}
+    controlsList="nodownload noplaybackrate"
+    onContextMenu={handleContextMenu}
+    onClick={handleUserUnmute} // <-- user interaction triggers unmute
+  />
 
 
                   {/* <video
@@ -598,10 +600,7 @@ const SubscriberPortal = () => {
                     onContextMenu={handleContextMenu}
                   /> */}
 
-                  <div
-                    className={`${document.fullscreenElement || isCssFs ? "fixed top-3 right-3 z-[99999]" : "relative"
-                      }`}
-                  >
+                  <div className="absolute top-3 right-3 z-[99999]">
                     <button
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
                       onClick={toggleFullscreen}
@@ -613,7 +612,6 @@ const SubscriberPortal = () => {
                       )}
                     </button>
                   </div>
-
 
                   <div className="absolute bottom-0 left-0 right-0 z-20">
                     <Progress
@@ -634,10 +632,11 @@ const SubscriberPortal = () => {
                     {[25, 50, 75, 100].map((m) => (
                       <div
                         key={m}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${progress >= m
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          progress >= m
                             ? "bg-primary text-white"
                             : "bg-secondary text-muted-foreground"
-                          }`}
+                        }`}
                       >
                         {progress >= m ? "✓" : m}
                       </div>
