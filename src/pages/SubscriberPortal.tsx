@@ -43,7 +43,7 @@ const encodeMetaToBase64 = (meta: Record<string, any>) =>
   btoa(JSON.stringify(meta));
 
 interface AdDetails {
-  sponsor: string;
+  sponsor: string;f
   duration: string;
   reward: string;
   rewardType: "data" | "airtime";
@@ -91,50 +91,112 @@ const SubscriberPortal = () => {
   }, []);
 
   // Fetch video based on token -> get ad_id -> get video blob
-  useEffect(() => {
-    if (!token || !metaBase64) return;
+  // useEffect(() => {
+  //   if (!token || !metaBase64) return;
 
-    const fetchVideo = async () => {
-      setViewState("loading");
-      try {
-        const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
-          headers: {
-            "Content-Type": "application/json",
-            meta_base64: metaBase64,
-          },
-        });
+  //   const fetchVideo = async () => {
+  //     setViewState("loading");
+  //     try {
+  //       const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           meta_base64: metaBase64,
+  //         },
+  //       });
 
-        const data = await res.json();
+  //       const data = await res.json();
 
-        // Check for API-level error
-        if (data.status === false) {
-          throw new Error(data.error || "Video cannot be loaded");
+  //       // Check for API-level error
+  //       if (data.status === false) {
+  //         throw new Error(data.error || "Video cannot be loaded");
+  //       }
+
+  //       if (!data.ad_id) throw new Error("Failed to get ad_id");
+
+  //       setCurrentSecureKey(data?.secure_key); // reset secure key
+
+  //       // Fetch video blob
+  //       const blobRes = await fetch(
+  //         `${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`
+  //       );
+  //       if (!blobRes.ok) throw new Error("Failed to fetch video blob");
+
+  //       const blob = await blobRes.blob();
+  //       const blobUrl = URL.createObjectURL(blob);
+
+  //       setVideoUrl(blobUrl);
+  //       setViewState("ready");
+  //     } catch (err: any) {
+  //       console.error(err);
+  //       setError(err.message || "Unable to load video");
+  //       setViewState("error");
+  //     }
+  //   };
+
+  //   fetchVideo();
+  // }, [token, metaBase64]);
+
+useEffect(() => {
+  if (!token || !metaBase64) return;
+
+  const fetchVideo = async () => {
+    setViewState("loading");
+    try {
+      const res = await fetch(`${API_CONFIG.API_BASE}/video/${token}`, {
+        headers: {
+          "Content-Type": "application/json",
+          meta_base64: metaBase64,
+        },
+      });
+
+      const data = await res.json();
+      if (data.status === false) throw new Error(data.error || "Video cannot be loaded");
+      if (!data.ad_id) throw new Error("Failed to get ad_id");
+
+      setCurrentSecureKey(data?.secure_key);
+
+      // Fetch video blob
+      const blobRes = await fetch(`${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`);
+      if (!blobRes.ok) throw new Error("Failed to fetch video blob");
+
+      const blob = await blobRes.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      setVideoUrl(blobUrl);
+
+      // --- AUTO START ---
+      setViewState("playing");      // directly go to playing state
+      handleStartVideo();           // trigger start API call
+
+      // Force play and auto-unmute after a short delay
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = true;   // ensure it starts muted
+          videoRef.current.play().catch(() => {
+            console.warn("Autoplay blocked, user interaction needed");
+          });
+
+          // Auto unmute after 1 second
+          setTimeout(() => {
+            videoRef.current!.muted = false;
+            videoRef.current!.volume = 1;
+            videoRef.current!.play().catch(() => {});
+          }, 1000);
         }
+      }, 50);
 
-        if (!data.ad_id) throw new Error("Failed to get ad_id");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Unable to load video");
+      setViewState("error");
+    }
+  };
 
-        setCurrentSecureKey(data?.secure_key); // reset secure key
+  fetchVideo();
+}, [token, metaBase64]);
 
-        // Fetch video blob
-        const blobRes = await fetch(
-          `${API_CONFIG.API_BASE}/ad/video/${data.ad_id}`
-        );
-        if (!blobRes.ok) throw new Error("Failed to fetch video blob");
 
-        const blob = await blobRes.blob();
-        const blobUrl = URL.createObjectURL(blob);
 
-        setVideoUrl(blobUrl);
-        setViewState("ready");
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Unable to load video");
-        setViewState("error");
-      }
-    };
-
-    fetchVideo();
-  }, [token, metaBase64]);
 
   const handleStartVideo = async () => {
     if (!currentSecureKey) return;
@@ -177,6 +239,23 @@ const SubscriberPortal = () => {
     }
   };
 
+
+//   useEffect(() => {
+//   const handleFsChange = () => {
+//     const video = videoRef.current;
+//     if (!video) return;
+//     // If the current fullscreen element is our video, CSS fullscreen mode is active
+//     setIsCssFs(document.fullscreenElement === video);
+//   };
+
+//   document.addEventListener("fullscreenchange", handleFsChange);
+
+//   return () => {
+//     document.removeEventListener("fullscreenchange", handleFsChange);
+//   };
+// }, []);
+
+
   // Video events
   useEffect(() => {
     const video = videoRef.current;
@@ -215,27 +294,62 @@ const SubscriberPortal = () => {
 
   const handleContextMenu = (e: React.MouseEvent) => e.preventDefault();
 
-  const toggleFullscreen = useCallback(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (isCssFs) {
-      root.classList.remove("app-fullscreen");
-      setIsCssFs(false);
-    } else {
-      const req =
-        root.requestFullscreen || (root as any).webkitRequestFullscreen;
-      if (req)
-        req.call(root).catch(() => {
-          root.classList.add("app-fullscreen");
-          setIsCssFs(true);
-        });
-      else {
-        root.classList.add("app-fullscreen");
-        setIsCssFs(true);
-      }
+  // const toggleFullscreen = useCallback(() => {
+  //   const root = rootRef.current;
+  //   if (!root) return;
+  //   if (document.fullscreenElement) document.exitFullscreen();
+  //   else if (isCssFs) {
+  //     root.classList.remove("app-fullscreen");
+  //     setIsCssFs(false);
+  //   } else {
+  //     const req =
+  //       root.requestFullscreen || (root as any).webkitRequestFullscreen;
+  //     if (req)
+  //       req.call(root).catch(() => {
+  //         root.classList.add("app-fullscreen");
+  //         setIsCssFs(true);
+  //       });
+  //     else {
+  //       root.classList.add("app-fullscreen");
+  //       setIsCssFs(true);
+  //     }
+  //   }
+  // }, [isCssFs]);
+
+// Fullscreen toggle
+const toggleFullscreen = useCallback(() => {
+  const video = videoRef.current;
+  if (!video) return;
+
+  if (document.fullscreenElement === video) {
+    document.exitFullscreen().catch(() => {});
+    setIsCssFs(false);
+  } else {
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch(() => {});
+      setIsCssFs(true);
     }
-  }, [isCssFs]);
+  }
+}, []);
+
+// Sync CSS state when user presses Esc or browser toggles fullscreen
+useEffect(() => {
+  const handleFsChange = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setIsCssFs(document.fullscreenElement === video);
+  };
+
+  document.addEventListener("fullscreenchange", handleFsChange);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", handleFsChange);
+  };
+}, []);
+
+
+
+
 
   const handleWatchAnother = () => {
     setViewState("ready");
@@ -386,7 +500,7 @@ const SubscriberPortal = () => {
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary text-white">
                       <CheckCircle2 className="h-4 w-4" />
-                    </div>
+                    </div>c
                     <div>
                       <p className="text-xs text-muted-foreground">Reward</p>
                       <p className="text-sm font-semibold">
@@ -403,12 +517,19 @@ const SubscriberPortal = () => {
                 </div>
 
                 {/* Video container */}
-                <div
+                {/* <div
                   className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
                     isCssFs ? "h-[92vh]" : "aspect-video"
                   }`}
                   onContextMenu={handleContextMenu}
-                >
+                > */}
+<div
+  className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
+    isCssFs ? "fixed inset-0 z-[9999] flex items-center justify-center bg-black" : "aspect-video"
+  }`}
+  onContextMenu={handleContextMenu}
+>
+
                   {isVideoLoading && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
                       <div className="text-center">
@@ -420,7 +541,22 @@ const SubscriberPortal = () => {
                     </div>
                   )}
 
-                  <video
+
+ <video
+    ref={videoRef}
+    src={videoUrl}
+    playsInline
+    autoPlay
+    muted
+    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
+    disablePictureInPicture
+    controls={false}
+    controlsList="nodownload noplaybackrate"
+    onContextMenu={handleContextMenu}
+  />
+
+
+                  {/* <video
                     ref={videoRef}
                     src={videoUrl}
                     playsInline
@@ -430,7 +566,7 @@ const SubscriberPortal = () => {
                     controls={false}
                     controlsList="nodownload noplaybackrate"
                     onContextMenu={handleContextMenu}
-                  />
+                  /> */}
 
                   <div className="absolute top-3 right-3 z-30">
                     <button
@@ -553,15 +689,22 @@ const SubscriberPortal = () => {
       </footer>
 
       <style>{`
-        .app-fullscreen {
-          position: fixed !important;
-          inset: 0 !important;
-          z-index: 99999 !important;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: black;
-        }
+       .app-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+}
+
+.app-fullscreen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* ensures video fills screen without cropping */
+}
+
       `}</style>
     </div>
   );
