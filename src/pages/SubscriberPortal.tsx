@@ -181,7 +181,7 @@ useEffect(() => {
             videoRef.current!.muted = false;
             videoRef.current!.volume = 1;
             videoRef.current!.play().catch(() => {});
-          }, 1000);
+          }, 2000);
         }
       }, 50);
 
@@ -523,10 +523,15 @@ useEffect(() => {
                   }`}
                   onContextMenu={handleContextMenu}
                 > */}
-<div
+                <div
   className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
-    isCssFs ? "fixed inset-0 z-[9999] flex items-center justify-center bg-black" : "aspect-video"
+    isCssFs ? "w-full h-full" : "w-full max-w-3xl"
   }`}
+  style={{
+    aspectRatio: !isCssFs && videoRef.current?.videoWidth
+      ? `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}`
+      : undefined,
+  }}
   onContextMenu={handleContextMenu}
 >
 
@@ -542,7 +547,7 @@ useEffect(() => {
                   )}
 
 
- <video
+<video
     ref={videoRef}
     src={videoUrl}
     playsInline
