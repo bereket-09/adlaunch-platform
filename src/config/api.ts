@@ -4,7 +4,7 @@
 export const API_CONFIG = {
   // Base URL for the backend API
   // BASE_URL: 'https://adplus-backend.vercel.app',
-  Base URL: 'https://adplus-backend.onrender.com/',
+  BASE_URL: 'https://adplus-backend.onrender.com/',
 
   // API version prefix
   API_VERSION: '/api/v1',
