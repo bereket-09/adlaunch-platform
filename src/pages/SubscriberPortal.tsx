@@ -519,7 +519,7 @@ const SubscriberPortal = () => {
                 }`}
             >
               <div className={`w-full max-w-3xl ${isCssFs ? "mx-auto" : ""}`}>
-
+      
                 {/* Video container */}
                 {/* <div
                   className={`relative rounded-2xl overflow-hidden bg-black shadow-lg ${
@@ -556,7 +556,7 @@ const SubscriberPortal = () => {
                     playsInline
                     autoPlay
                     muted
-                    className={`w-full h-[90%] object-contain ${isCssFs ? "pointer-events-none" : ""}`}
+                    className={`w-full h-full object-contain ${isCssFs ? "pointer-events-none" : ""}`}
                     disablePictureInPicture
                     controls={false}
                     controlsList="nodownload noplaybackrate"
@@ -577,7 +577,7 @@ const SubscriberPortal = () => {
                     onContextMenu={handleContextMenu}
                   /> */}
 
-                  <div className="absolute top-3 right-3 z-[99999]">
+                  <div className="absolute top-3 right-3 z-[9999]">
                     <button
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
                       onClick={toggleFullscreen}
@@ -618,28 +618,28 @@ const SubscriberPortal = () => {
                       </div>
                     ))}
                   </div>
-                        {/* Reward header */}
-                <div className={`${isCssFs ? "hidden" : ""}`}>
-                <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary text-white">
-                      <CheckCircle2 className="h-4 w-4" />
-                    </div>c
-                    <div>
-                      <p className="text-xs text-muted-foreground">Reward</p>
-                      <p className="text-sm font-semibold">
-                        {adDetails.reward}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    <div>Sponsored by</div>
-                    <div className="font-semibold text-foreground">
-                      {adDetails.sponsor}
-                    </div>
-                  </div>
                 </div>
-              </div>
+                          {/* Reward header */}
+                <div className={`${isCssFs ? "hidden" : ""}`}>
+                  <div className="mb-3 mt-3 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-orange-50 border border-primary/10 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary text-white">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Reward</p>
+                        <p className="text-sm font-semibold">
+                          {adDetails.reward}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <div>Sponsored by</div>
+                      <div className="font-semibold text-foreground">
+                        {adDetails.sponsor}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -715,14 +715,14 @@ const SubscriberPortal = () => {
 
       {/* Footer */}
       <footer className="p-4 text-center text-sm text-muted-foreground border-t border-border/50">
-        <p>© 2024 AdRewards Platform. Powered by Zero-Rated Technology.</p>
+        <p>© 2026 AdRewards Platform.</p>
       </footer>
 
       <style>{`
        .app-fullscreen {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 99998 !important;
+  z-index: 99999 !important;
   display: flex;
   align-items: center;
   justify-content: center;
