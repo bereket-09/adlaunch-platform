@@ -25,6 +25,7 @@ const sidebarItems = [
   { icon: DollarSign, label: "Budget Controls", href: "/admin/budget" },
   { icon: SmartphoneCharging, label: "Customer Lookup", href: "/admin/lookup" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: Smartphone, label: "Simulator", href: "/admin/simulator" },
 ];
 
 interface Props {

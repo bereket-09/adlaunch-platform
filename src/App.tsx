@@ -26,6 +26,7 @@ import AdminViewCampaigns from "./pages/admin/AdminViewCampaigns";
 import AdminCampaignDetail from "./pages/admin/AdminCampaignDetail";
 import MarketerUpdatePassword from "./pages/marketer/UpdatePassword";
 import AdminMsisdnSearch from "./pages/admin/MSISDNLookup";
+import SimulatorPage from "./pages/admin/SimulatorPage";
 
 const queryClient = new QueryClient();
 
@@ -67,7 +68,7 @@ const App = () => (
           <Route path="/admin/settings" element={<AdminSettings />} />
           
           <Route path="/admin/lookup" element={<AdminMsisdnSearch />} />
-          
+          <Route path="/admin/simulator" element={<SimulatorPage />} />
           {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
