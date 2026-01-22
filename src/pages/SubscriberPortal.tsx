@@ -600,7 +600,7 @@ const handleUserUnmute = () => {
                     onContextMenu={handleContextMenu}
                   /> */}
 
-                  <div className="absolute top-3 right-3 z-30">
+                  <div className="absolute top-3 right-3 z-[9999]">
                     <button
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/10 text-white"
                       onClick={toggleFullscreen}
