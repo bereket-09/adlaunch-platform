@@ -169,21 +169,35 @@ useEffect(() => {
       handleStartVideo();           // trigger start API call
 
       // Force play and auto-unmute after a short delay
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.muted = true;   // ensure it starts muted
-          videoRef.current.play().catch(() => {
-            console.warn("Autoplay blocked, user interaction needed");
-          });
+    // Force play and handle unmute correctly
+const playVideoSafely = async () => {
+  if (!videoRef.current) return;
 
-          // Auto unmute after 1 second
-          setTimeout(() => {
-            videoRef.current!.muted = false;
-            videoRef.current!.volume = 1;
-            videoRef.current!.play().catch(() => {});
-          }, 2000);
-        }
-      }, 50);
+  const video = videoRef.current;
+
+  // Start muted first
+  video.muted = true;
+  try {
+    await video.play();
+  } catch {
+    console.warn("Autoplay blocked, user interaction needed");
+  }
+
+  // Auto unmute after a short delay
+  setTimeout(async () => {
+    video.muted = false;
+    video.volume = 1;
+    try {
+      // Re-trigger play to prevent pause on unmute
+      await video.play();
+    } catch {
+      console.warn("Play after unmute blocked");
+    }
+  }, 500); // 0.5s is usually enough
+};
+
+playVideoSafely();
+
 
     } catch (err: any) {
       console.error(err);
