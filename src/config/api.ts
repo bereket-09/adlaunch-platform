@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for the backend API
-  BASE_URL: 'http://localhost:3000',
+  BASE_URL: 'https://adplus-backend.vercel.app',
 
   // API version prefix
   API_VERSION: '/api/v1',
