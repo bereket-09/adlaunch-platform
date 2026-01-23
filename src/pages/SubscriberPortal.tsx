@@ -381,8 +381,18 @@ const SubscriberPortal = () => {
     setProgress(0);
     if (videoRef.current) videoRef.current.currentTime = 0;
   };
-  const handleBrowseNow = () =>
-    (window.location.href = "https://www.google.com");
+  
+  const handleBrowseNow = () => {
+  window.close();
+
+  // Fallback for browsers that block closing user-opened tabs
+  setTimeout(() => {
+    if (!window.closed) {
+      window.location.href = "about:blank";
+    }
+  }, 100);
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 flex flex-col">
