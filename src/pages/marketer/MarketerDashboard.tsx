@@ -142,7 +142,7 @@ const MarketerDashboard = () => {
           />
           <KPICard
             title="Total Spend"
-            value={`${budget?.spent || 0} Br.`}
+            value={`${budget?.spent.toFixed(2) || 0} Br.`}
             icon={DollarSign}
             trend="down"
           />
@@ -173,7 +173,7 @@ const MarketerDashboard = () => {
           />
           <KPICard
             title="Avg. Watch Time"
-            value={analytics?.avg_watch_time || "29 Sec"}
+            value={analytics?.avg_watch_time || "16 sec"}
             icon={Clock}
             trend="neutral"
             size="sm"
@@ -250,7 +250,7 @@ const MarketerDashboard = () => {
                           yAxisId="right"
                           dataKey="spend"
                           fill="hsl(var(--gray-300))"
-                          name="Spend ($)"
+                          name="Spend (Br)"
                           radius={[4, 4, 0, 0]}
                         />
                       </ComposedChart>

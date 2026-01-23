@@ -278,7 +278,7 @@ const MarketerReports = () => {
                         Total Spend
                       </p>
                       <p className="text-2xl font-bold">
-                        {summary.totalSpend} Br.
+                        {summary.totalSpend.toFixed(2)} Br.
                       </p>
                     </div>
                   </div>
@@ -338,10 +338,10 @@ const MarketerReports = () => {
                         <Line
                           yAxisId="right"
                           type="monotone"
-                          dataKey="spend"
+                          dataKey="spend.toFixed(2)"
                           stroke="hsl(var(--orange-600))"
                           strokeWidth={2}
-                          name="Spend ($)"
+                          name="Spend (Br)"
                         />
                       </LineChart>
                     </ResponsiveContainer>

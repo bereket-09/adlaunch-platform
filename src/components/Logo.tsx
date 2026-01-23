@@ -25,7 +25,7 @@ const Logo = ({ size = "md", showText = true }: LogoProps) => {
       </div>
       {showText && (
         <span className={`${textClasses[size]} font-bold text-foreground`}>
-          AdView<span className="text-primary">Pro</span>
+          Ad<span className="text-primary">Rewards</span>
         </span>
       )}
     </div>
