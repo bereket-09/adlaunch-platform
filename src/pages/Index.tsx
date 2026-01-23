@@ -67,10 +67,10 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             {[
-              { value: "10M+", label: "Daily Views" },
-              { value: "98%", label: "Completion Rate" },
-              { value: "5K+", label: "Active Marketers" },
-              { value: "50M+", label: "Users Reached" },
+              { value: "100k+", label: "Daily Views" },
+              { value: "95%", label: "Completion Rate" },
+              { value: "100+", label: "Active Marketers" },
+              { value: "5M+", label: "Users Reached" },
             ].map((stat, i) => (
               <div key={i} className="text-center p-4 rounded-xl hover:bg-orange-50 transition-all">
                 <p className="text-4xl font-extrabold text-primary drop-shadow-sm">{stat.value}</p>
@@ -145,7 +145,7 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Logo size="sm" />
-            <p className="text-sm text-muted-foreground">© 2024 AdView Pro. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2026 AdRewards Pro. All rights reserved.</p>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a className="hover:text-primary transition-colors">Privacy</a>
               <a className="hover:text-primary transition-colors">Terms</a>

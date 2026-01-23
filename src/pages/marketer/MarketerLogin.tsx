@@ -218,15 +218,15 @@ const handleSubmit = async (e: React.FormEvent) => {
           </p>
           <div className="flex gap-8 pt-4">
             <div>
-              <p className="text-3xl font-bold">10M+</p>
+              <p className="text-3xl font-bold">100K+</p>
               <p className="text-sm opacity-80">Daily Views</p>
             </div>
             <div>
-              <p className="text-3xl font-bold">5K+</p>
+              <p className="text-3xl font-bold">100+</p>
               <p className="text-sm opacity-80">Marketers</p>
             </div>
             <div>
-              <p className="text-3xl font-bold">98%</p>
+              <p className="text-3xl font-bold">95%</p>
               <p className="text-sm opacity-80">Completion Rate</p>
             </div>
           </div>
