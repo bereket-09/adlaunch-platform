@@ -46,7 +46,7 @@ const SimulatorPage = () => {
 
 
   const truncateLink = (link: string) => {
-    const maxLength = 55;
+    const maxLength = 100;
     return link.length > maxLength ? link.slice(0, maxLength) + "..." : link;
   };
 

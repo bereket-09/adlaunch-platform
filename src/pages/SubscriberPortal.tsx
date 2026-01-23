@@ -25,19 +25,53 @@ type ViewState =
   | "rewarded"
   | "error";
 
-const getDeviceInfo = () => {
+  const getDeviceInfo = () => {
   const ua = navigator.userAgent;
-  const isMobile = /Mobi|Android/i.test(ua);
+  console.log ("ua", ua)
+  const platform = navigator.platform || "";
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isMobileUA = /Mobi|Android/i.test(ua);
+
+  const isTouchDevice = maxTouchPoints > 0;
+  const isDesktopOS = /Win|Mac|Linux/i.test(platform);
+
+  const isMobile =
+    (isAndroid || isIOS || isMobileUA) &&
+    isTouchDevice &&
+    !isDesktopOS;
+
   return {
+    type: isMobile ? "mobile" : "desktop",
     model: isMobile ? "Smartphone" : "Desktop",
-    brand: /iPhone|iPad/i.test(ua)
+    brand: isIOS
       ? "Apple"
-      : /Android/i.test(ua)
+      : isAndroid
         ? "Android"
-        : "Unknown",
+        : isDesktopOS
+          ? "PC"
+          : "Unknown",
+    platform,
     userAgent: ua,
+    touchPoints: maxTouchPoints,
   };
 };
+
+// const getDeviceInfo = () => {
+//   const ua = navigator.userAgent;
+//   const isMobile = /Mobi|Android/i.test(ua);
+//   return {
+//     model: isMobile ? "Smartphone" : "Desktop",
+//     brand: /iPhone|iPad/i.test(ua)
+//       ? "Apple"
+//       : /Android/i.test(ua)
+//         ? "Android"
+//         : "Unknown",
+//     userAgent: ua,
+//   };
+// };
 
 const encodeMetaToBase64 = (meta: Record<string, any>) =>
   btoa(JSON.stringify(meta));
@@ -381,7 +415,7 @@ const SubscriberPortal = () => {
     setProgress(0);
     if (videoRef.current) videoRef.current.currentTime = 0;
   };
-  
+
   const handleBrowseNow = () => {
   window.close();
 
