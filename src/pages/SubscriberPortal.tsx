@@ -112,17 +112,50 @@ const SubscriberPortal = () => {
   };
 
   // Prepare meta
-  useEffect(() => {
-    const deviceInfo = getDeviceInfo();
-    const meta = {
-      msisdn: "251912345678",
-      ip: "127.0.0.1",
-      userAgent: deviceInfo.userAgent,
-      deviceInfo: { model: deviceInfo.model, brand: deviceInfo.brand },
-      location: { lat: 8.0, lon: 34.0, category: "Ethiopia" },
-    };
-    setMetaBase64(encodeMetaToBase64(meta));
-  }, []);
+  // useEffect(() => {
+  //   const deviceInfo = getDeviceInfo();
+  //   const meta = {
+  //     msisdn: "251912345678",
+  //     ip: "127.0.0.1",
+  //     userAgent: deviceInfo.userAgent,
+  //     deviceInfo: { model: deviceInfo.model, brand: deviceInfo.brand },
+  //     location: { lat: 8.0, lon: 34.0, category: "Ethiopia" },
+  //   };
+  //   setMetaBase64(encodeMetaToBase64(meta));
+  // }, []);
+
+  const deviceInfo = getDeviceInfo();
+
+useEffect(() => {
+  const deviceInfo = getDeviceInfo();
+
+  const meta = {
+    msisdn: "251912345678",
+    ip: "127.0.0.1",
+    userAgent: deviceInfo.userAgent,
+    device: {
+      type: deviceInfo.type,
+      model: deviceInfo.model,
+      brand: deviceInfo.brand,
+      platform: deviceInfo.platform,
+      touchPoints: deviceInfo.touchPoints,
+    },
+    screen: {
+      width: window.screen.width,
+      height: window.screen.height,
+      pixelRatio: window.devicePixelRatio,
+    },
+    location: {
+      lat: 8.0,
+      lon: 34.0,
+      country: "ET",
+    },
+  };
+
+  console.log ("meta",meta)
+  setMetaBase64(btoa(JSON.stringify(meta)));
+}, []);
+
 
   // Fetch video based on token -> get ad_id -> get video blob
   // useEffect(() => {

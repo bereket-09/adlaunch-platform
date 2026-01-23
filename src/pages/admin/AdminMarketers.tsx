@@ -407,10 +407,10 @@ const handleDeduct = async () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          ${marketer.total_budget.toLocaleString()}
+                          {marketer.total_budget.toLocaleString()} Br.
                         </TableCell>
                         <TableCell className="text-right font-medium text-primary">
-                          ${marketer.remaining_budget.toLocaleString()}
+                          {marketer.remaining_budget.toLocaleString()} Br.
                         </TableCell>
                         <TableCell>{getStatusBadge(marketer.status)}</TableCell>
                         <TableCell className="text-right">
@@ -505,7 +505,7 @@ const handleDeduct = async () => {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-foreground">
-                  ${marketers.reduce((acc, m) => acc + m.total_budget, 0).toLocaleString()}
+                {marketers.reduce((acc, m) => acc + m.total_budget, 0).toLocaleString()} Br
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Total Budget</p>
               </div>
@@ -515,7 +515,7 @@ const handleDeduct = async () => {
             <CardContent className="pt-6">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">
-                  ${marketers.reduce((acc, m) => acc + m.remaining_budget, 0).toLocaleString()}
+                  {marketers.reduce((acc, m) => acc + m.remaining_budget, 0).toLocaleString()} Br
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">Available Balance</p>
               </div>
@@ -525,7 +525,7 @@ const handleDeduct = async () => {
 
         {/* Create Marketer Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-[80%]">
             <DialogHeader>
               <DialogTitle>Add New Marketer</DialogTitle>
               <DialogDescription>
@@ -563,7 +563,7 @@ const handleDeduct = async () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="total_budget">Initial Budget ($)</Label>
+                <Label htmlFor="total_budget">Initial Budget (Br)</Label>
                 <Input
                   id="total_budget"
                   type="number"
@@ -650,7 +650,7 @@ const handleDeduct = async () => {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Amount ($)</Label>
+                <Label>Amount (Br)</Label>
                 <Input
                   type="number"
                   value={topupData.amount}
@@ -689,7 +689,7 @@ const handleDeduct = async () => {
         {/* Transactions Dialog */}
         {/* Transactions Dialog with Search & Filter */}
 <Dialog open={isTransactionsOpen} onOpenChange={setIsTransactionsOpen}>
-  <DialogContent className="max-w-3xl">
+  <DialogContent className="max-w-full">
     <DialogHeader>
       <DialogTitle>Transaction History - {selectedMarketerName}</DialogTitle>
       <DialogDescription>
@@ -757,10 +757,10 @@ const handleDeduct = async () => {
                   </Badge>
                 </TableCell>
                 <TableCell className={`text-right font-medium ${tx.type === 'topup' ? 'text-green-600' : tx.type === 'deduction' ? 'text-red-600' : 'text-blue-600'}`}>
-                  {tx.type === 'topup' ? '+' : tx.type === 'deduction' ? '-' : '-'}${tx.amount.toLocaleString()}
+                  {tx.type === 'topup' ? '+' : tx.type === 'deduction' ? '-' : '-'}{tx.amount.toLocaleString()} Br
                 </TableCell>
-                <TableCell className="text-right">${tx.previous_budget?.toLocaleString() || '-'}</TableCell>
-                <TableCell className="text-right">${tx.new_budget?.toLocaleString() || '-'}</TableCell>
+                <TableCell className="text-right">{tx.previous_budget?.toLocaleString() || '-'} Br</TableCell>
+                <TableCell className="text-right">{tx.new_budget?.toLocaleString() || '-'} Br</TableCell>
                 <TableCell className="text-muted-foreground">{tx.description || tx.reason || '-'}</TableCell>
               </TableRow>
             ))}
@@ -786,7 +786,7 @@ const handleDeduct = async () => {
     </DialogHeader>
     <div className="space-y-4 py-4">
       <div className="space-y-2">
-        <Label>Amount ($)</Label>
+        <Label>Amount (Br)</Label>
         <Input
           type="number"
           value={deductData.amount}
