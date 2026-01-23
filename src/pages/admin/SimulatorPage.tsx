@@ -71,7 +71,7 @@ const SimulatorPage = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">USSD SMS Simulator</h1>
+            {/* <h1 className="text-4xl font-bold text-gray-800 mb-2"> SMS Simulator</h1> */}
             <p className="text-gray-600">Simulate SMS delivery to Ethiopian mobile numbers</p>
           </div>
 
@@ -229,7 +229,7 @@ const SimulatorPage = () => {
                   </div>
                 ) : (
                   <div className="text-center">
-                    <div className="w-80 h-[700px] bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl shadow-2xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+                    <div className="w-[380px] h-[700px] bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl shadow-2xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
                       <Phone className="h-16 w-16 text-gray-400 mb-4" />
                       <h3 className="text-xl font-semibold text-gray-600 mb-2">Simulated Phone Preview</h3>
                       <p className="text-gray-500 px-8 text-center">
